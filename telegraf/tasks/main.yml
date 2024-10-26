@@ -34,20 +34,40 @@
     ansible.builtin.copy:
       src: telegraf.d
       dest: /etc/telegraf/
+      force: true
     become: true
 
-  # - name: Template config to  /etc/default/telegraf
-  #   ansible.builtin.template:
-  #     src: etc_default_telegraf.j2
-  #     dest: /etc/default/telegraf
+  # - name: delete config at  /etc/default/telegraf
+  #   ansible.builtin.file:
+  #     path: /etc/default/telegraf
+  #     state: absent
+  #   register: rm_config_status
   #   become: true
 
-  - name: copy config to  /etc/default/telegraf
+  # - ansible.builtin.debug:
+  #     var: rm_config_status
+  #     verbosity: 0
+
+  - name: copy config to /etc/default/telegraf
     ansible.builtin.copy:
-      src: etc-default-telegraf
+      src: etc-default-telegraf-local
       dest: /etc/default/telegraf
-      mode: 0600
+      group: telegraf
+      mode: 0640
       decrypt: true
+      force: true
+    register: config_status
+    become: true
+
+  - ansible.builtin.debug:
+      var: config_status
+      verbosity: 1
+
+  - name: copy lets encrypt ca  to  /etc/ssl/certs/
+    ansible.builtin.copy:
+      src: lets_encrypt_ca.cer 
+      dest: /etc/ssl/certs/lets_encrypt_ca.cer
+      mode: 0644
     become: true
 
   - name: systemd reload configs and restart telegraf

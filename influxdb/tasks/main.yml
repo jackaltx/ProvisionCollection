@@ -3,42 +3,12 @@
 
 - block:
 
-  ############ pre Debian 12 requirement
-  - name: "Prepare the apt keyring directory"
-    ansible.builtin.file:
-      path: /etc/apt/keyrings
-      state: directory
-    become: true
+  - name: Include task list in play
+    ansible.builtin.import_tasks:
+      file: apt-repo-setup.yml
 
-  - name: "get influx key"
-    ansible.builtin.get_url:
-      url: https://repos.influxdata.com/influxdata-archive.key
-      dest: /etc/apt/keyrings/influxdata-archive.key
-    become: true
-
-  - name: "build key for apt"
-    ansible.builtin.shell:
-      cmd: echo echo "943666881a1b8d9b849b74caebf02d3465d6beb716510d86a39f6c8e8dac7515  influxdata-archive.key | sha256sum -c && cat /etc/apt/keyrings/influxdata-archive.key" | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg > /dev/null
-    become: true
-
-  - name: "Get influxdb  keyring"
-    ansible.builtin.get_url:
-      url: https://repos.influxdata.com/influxdata-archive.key
-      dest: /etc/apt/keyrings/influxdata-archive.key
-    become: true
-
-  - name: "setup influxdb apt repo"
-    ansible.builtin.copy:
-      src: influxdata.list
-      dest: /etc/apt/sources.list.d/influxdata.list
-    become: true
-
-  - name: "Get influx package"
-    ansible.builtin.apt:
-      update_cache: true
-      pkg:
-        - influxdb2
-    become: true
+  ##################
+  # Configure
 
   - name: "Prepare /etc/influxd"
     ansible.builtin.file:
@@ -58,26 +28,37 @@
       state: restarted
     become: true
 
-  - name: "create initial user"
-    ansible.builtin.shell:
-      cmd: "/usr/bin/influx setup --org {{ influxdb_org }} --bucket {{ influxdb_bucket }} --username {{ influxdb_username }} --password {{ influxdb_password }} --force"
-    become: true
+  - name: Initialize a new influxdb instance
+    block:
 
-  - name: "create initial user"
-    ansible.builtin.shell:
-      cmd: influx auth create --org lavnet --all-access --description admin
-    become: true
+    - name: "create initial user"
+      ansible.builtin.shell:
+        cmd: "/usr/bin/influx setup --org {{ influxdb_org }} --bucket {{ influxdb_bucket }} --username {{ influxdb_username }} --password {{ influxdb_password }} --force"
+      register: initialization_result
+      failed_when: initialization_result.rc != 0
+      become: true
 
-  - name: "create initial user"
-    ansible.builtin.shell:
-      cmd: influx auth create --org lavnet --operator --description operator  
-    become: true
+    - name: "create initial admin token"
+      ansible.builtin.shell:
+        cmd: influx auth create --org lavnet --all-access --description admin
+      become: true
 
-  - name: "import dashboard template"
-    ansible.builtin.shell:
-      cmd: influx apply -u https://raw.githubusercontent.com/influxdata/community-templates/master/linux_system/linux_system.yml
-    become: true
+    - name: "create initial operator token"
+      ansible.builtin.shell:
+        cmd: influx auth create --org lavnet --operator --description operator
+      become: true
 
+    - name: "import dashboard template"
+      ansible.builtin.shell:
+        cmd: influx apply -u https://raw.githubusercontent.com/influxdata/community-templates/master/linux_system/linux_system.yml
+      become: true
+
+    rescue:
+      - name: Print when errors
+        ansible.builtin.debug:
+          msg: "Cannot be setup via ansible.\n The script cannot access SSL and/or it was already setup once!!!"
+
+    
   when: influxdb_state == 'present'
 
 - block:

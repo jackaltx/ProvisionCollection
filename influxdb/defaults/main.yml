@@ -12,3 +12,6 @@ influxdb_org:  lavnet
 influxdb_bucket: lavnet 
 influxdb_username: lavender
 influxdb_password: ThisIsATest 
+
+influxdb_cert: ""
+influxdb_key: ""
