@@ -13,8 +13,10 @@
 
   - name: "Get telegraf keyring"
     ansible.builtin.get_url:
-      url: https://repos.influxdata.com/influxdata-archive_compat.key
-      dest: /etc/apt/keyrings/influxdata-archive_compat.key
+      url: https://repos.influxdata.com/influxdata-archive.key
+      dest: /etc/apt/keyrings/influxdata-archive
+      
+      .key
     become: true
 
   - name: "setup telegraf apt repo"
