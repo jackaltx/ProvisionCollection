@@ -2,5 +2,9 @@
 # defaults file for telegraf
 
 telegraf_state: present
-influx_defaults: ""
+influx_defaults: "etc-default-telegraf-local"
 
+influx_apache: false  
+influx_mariadb: false  
+influx_memcache: false  
+influx_redis: false  

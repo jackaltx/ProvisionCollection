@@ -15,3 +15,6 @@ influxdb_password: ThisIsATest
 
 influxdb_cert: ""
 influxdb_key: ""
+
+influxdb_delete_config: false
+influxdb_delete_data: false

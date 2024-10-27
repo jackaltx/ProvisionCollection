@@ -1,0 +1,10 @@
+---
+- name: "Removed InfluxDB v2 via Package"
+  ansible.builtin.apt:
+    #update_cache: true
+    pkg:
+      - influxdb2
+    autoremove: true
+    autoclean: true
+    state: absent
+  become: true

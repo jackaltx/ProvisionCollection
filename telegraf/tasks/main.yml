@@ -4,55 +4,18 @@
 
 - block: 
 
-  ############# pre Debian 12 requirement
-  - name: "Prepare the apt keyring directory"
-    ansible.builtin.file:
-      path: /etc/apt/keyrings
-      state: directory
-    become: true
+  - name: Package install
+    ansible.builtin.include_tasks:
+      file: "{{ ansible_distribution }}-install.yml"
 
-  - name: "Get telegraf keyring"
-    ansible.builtin.get_url:
-      url: https://repos.influxdata.com/influxdata-archive.key
-      dest: /etc/apt/keyrings/influxdata-archive
-      
-      .key
-    become: true
+  - name: Configure the plugins
+    ansible.builtin.include_tasks:
+      file: telegrafd-setup.yml
 
-  - name: "setup telegraf apt repo"
-    ansible.builtin.copy:
-      src: influxdata.list
-      dest: /etc/apt/sources.list.d/influxdata.list
-    become: true
-
-  - name: "Install Telegraf via Package"
-    ansible.builtin.apt:
-      update_cache: true
-      pkg:
-        - telegraf
-    become: true
-
-  - name: copy telegraf.d configuration files
-    ansible.builtin.copy:
-      src: telegraf.d
-      dest: /etc/telegraf/
-      force: true
-    become: true
-
-  # - name: delete config at  /etc/default/telegraf
-  #   ansible.builtin.file:
-  #     path: /etc/default/telegraf
-  #     state: absent
-  #   register: rm_config_status
-  #   become: true
-
-  # - ansible.builtin.debug:
-  #     var: rm_config_status
-  #     verbosity: 0
-
+  # All the secrets are passed in via an evironment file
   - name: copy config to /etc/default/telegraf
     ansible.builtin.copy:
-      src: etc-default-telegraf-local
+      src: "{{ influx_defaults }}"
       dest: /etc/default/telegraf
       group: telegraf
       mode: 0640
@@ -65,12 +28,15 @@
       var: config_status
       verbosity: 1
 
+
+  # SMELL: Used for an HTTPS influxdb.  This might should be elsewhere.
   - name: copy lets encrypt ca  to  /etc/ssl/certs/
     ansible.builtin.copy:
       src: lets_encrypt_ca.cer 
       dest: /etc/ssl/certs/lets_encrypt_ca.cer
       mode: 0644
     become: true
+
 
   - name: systemd reload configs and restart telegraf
     ansible.builtin.systemd_service:
@@ -80,19 +46,14 @@
       enabled: true
     become: true
 
+
   when: telegraf_state == 'present'
 
 - block:
 
-  - name: "Removed Telegraf via Package"
-    ansible.builtin.apt:
-      update_cache: true
-      pkg:
-        - telegraf
-      autoremove: true
-      autoclean: true
-      state: absent
-    become: true
+  - name: Package remove
+    ansible.builtin.include_tasks:
+      file: "{{ ansible_distribution }}-rm.yml"
 
   - name: "Remove the config file"
     ansible.builtin.file:

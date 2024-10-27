@@ -1,0 +1,36 @@
+---
+- block:
+  ############ pre Debian 12 requirement
+  - name: "Prepare the apt keyring directory"
+    ansible.builtin.file:
+      path: /etc/apt/keyrings
+      state: directory
+
+  - name: "get influx key"
+    ansible.builtin.get_url:
+      url: https://repos.influxdata.com/influxdata-archive.key
+      dest: /etc/apt/keyrings/influxdata-archive.key
+
+  - name: "build key for apt"
+    ansible.builtin.shell:
+      cmd: echo echo "943666881a1b8d9b849b74caebf02d3465d6beb716510d86a39f6c8e8dac7515  influxdata-archive.key | sha256sum -c && cat /etc/apt/keyrings/influxdata-archive.key" | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg > /dev/null
+
+  - name: "Get influxdb  keyring"
+    ansible.builtin.get_url:
+      url: https://repos.influxdata.com/influxdata-archive.key
+      dest: /etc/apt/keyrings/influxdata-archive.key
+
+
+  - name: "setup influxdb apt repo"
+    ansible.builtin.copy:
+      src: influxdata.list
+      dest: /etc/apt/sources.list.d/influxdata.list
+
+  - name: "Get influx package"
+    ansible.builtin.apt:
+      update_cache: true
+      pkg:
+        - influxdb2
+    become: true
+
+  become: true

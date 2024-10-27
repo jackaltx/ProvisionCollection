@@ -1,11 +1,12 @@
 ---
 # tasks file for influxdb
 
+#=============================================================================================================
 - block:
 
-  - name: Include task list in play
-    ansible.builtin.import_tasks:
-      file: apt-repo-setup.yml
+  - name: Package install
+    ansible.builtin.include_tasks:
+      file: "{{ ansible_distribution }}-install.yml"
 
   ##################
   # Configure
@@ -28,39 +29,77 @@
       state: restarted
     become: true
 
+  #.........................
   - name: Initialize a new influxdb instance
     block:
 
-    - name: "create initial user"
+    - name: "create initial db user"
       ansible.builtin.shell:
         cmd: "/usr/bin/influx setup --org {{ influxdb_org }} --bucket {{ influxdb_bucket }} --username {{ influxdb_username }} --password {{ influxdb_password }} --force"
-      register: initialization_result
-      failed_when: initialization_result.rc != 0
+      register: cmd_result
+      failed_when: cmd_result.rc != 0
       become: true
+
+    - ansible.builtin.debug:
+        var: cmd_result.stdout
 
     - name: "create initial admin token"
       ansible.builtin.shell:
-        cmd: influx auth create --org lavnet --all-access --description admin
+        cmd: influx auth create --org lavnet --all-access --description admin --json
+      register: cmd_result
+      failed_when: cmd_result.rc != 0
       become: true
+    - ansible.builtin.debug:
+        var: cmd_result.stdout
+        verbosity: 1
+    - set_fact:
+        influx_admin: "{{ cmd_result.stdout| from_json }}"
+    - debug:
+        var: influx_admin.id
+    - debug:
+        var: influx_admin.token
+    - debug:
+        var: influx_admin.description
+
 
     - name: "create initial operator token"
       ansible.builtin.shell:
-        cmd: influx auth create --org lavnet --operator --description operator
+        cmd: influx auth create --org lavnet --operator --description operator --json
+      register: cmd_result
+      failed_when: cmd_result.rc != 0
       become: true
+    - ansible.builtin.debug:
+        var: cmd_result.stdout
+        verbosity: 1
+    - set_fact:
+        influx_operator: "{{ cmd_result.stdout| from_json }}"
+    - debug:
+        var: influx_operator.id
+    - debug:
+        var: influx_operator.token
+    - debug:
+        var: influx_operator.description
 
-    - name: "import dashboard template"
-      ansible.builtin.shell:
-        cmd: influx apply -u https://raw.githubusercontent.com/influxdata/community-templates/master/linux_system/linux_system.yml
-      become: true
+
+
+    # - name: "import dashboard template"
+    #   ansible.builtin.shell:
+    #     cmd: influx apply -u https://raw.githubusercontent.com/influxdata/community-templates/master/linux_system/linux_system.yml
+    #   register: cmd_result
+    #   become: true
+
+    # - ansible.builtin.debug:
+    #     var: cmd_result
 
     rescue:
       - name: Print when errors
         ansible.builtin.debug:
           msg: "Cannot be setup via ansible.\n The script cannot access SSL and/or it was already setup once!!!"
-
-    
+   
   when: influxdb_state == 'present'
 
+
+#=============================================================================================================
 - block:
 
   - name: Stop service influxd, if running
@@ -69,18 +108,18 @@
       state: stopped
     become: true
 
-  - name: "Remove Influxd package"
-    ansible.builtin.apt:
-      update_cache: true
-      pkg:
-        - influxdb2
-        - influxdb-cli
-      autoremove: true
-      autoclean: true
-      state: absent
-    become: true
+  - name: Package remove
+    ansible.builtin.include_tasks:
+      file: "{{ ansible_distribution }}-rm.yml"
 
+  #.........................
   - block:
+
+    - name: "Remove the default file"
+      ansible.builtin.file:
+        path: /etc/default/influxdb2
+        state: absent
+      become: true
 
     - name: "Remove the config files"
       ansible.builtin.file:
@@ -96,11 +135,13 @@
 
     when: influxdb_delete_config
 
-  - name: "Remove the data files in {{ influxdb_data_path }}/influxdb"
+  #.........................
+  - name: "Remove the data files in {{ influxdb_data_path }}"
     ansible.builtin.file:
       path: "{{ influxdb_data_path }}"
       state: absent
     become: true
     when: influxdb_delete_data
+    
 
   when: influxdb_state == 'absent'
