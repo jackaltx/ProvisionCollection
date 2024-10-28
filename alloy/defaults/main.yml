@@ -1,0 +1,4 @@
+---
+# defaults file for alloy
+
+alloy_state: 'present'

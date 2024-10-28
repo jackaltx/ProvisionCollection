@@ -1,0 +1,8 @@
+---
+# defaults file for loki
+
+loki_state: present
+
+loki_s3_bucket: lavnet
+loki_key_id: LokiStoreMonitor1:TWFAE11EK0hpA4kAYPLE
+loki_access_key: 1RPOLdE7YXfQ6HXrJvZPHdZLhxt9Iats

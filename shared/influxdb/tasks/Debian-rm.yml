@@ -1,0 +1,11 @@
+---
+
+- name: "Remove {{ package }} Package"
+  ansible.builtin.apt:
+    update_cache: true
+    pkg:
+      - "{{ package }}"
+    autoremove: true
+    autoclean: true
+    state: absent
+  become: true

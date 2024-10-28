@@ -1,0 +1,46 @@
+---
+# tasks file for alloy
+
+  #.......................................  
+- block:
+
+  - name: Package install
+    ansible.builtin.include_tasks:
+      file: "{{ ansible_distribution }}-install.yml"
+
+  ##################
+  # Configure
+
+  - name: Template config to  /etc/alloy/config.alloy
+    ansible.builtin.copy:
+      src: "{{ item}}"
+      dest: /etc/alloy/
+    with_fileglob:
+      - "*.alloy"
+    become: true
+
+  # - name: systemd reload configs and restart Loki
+  #   ansible.builtin.systemd_service:
+  #     daemon_reload: true
+  #     name: loki
+  #     state: restarted
+  #     enabled: true
+  #   become: true
+
+  when: alloy_state == 'present'
+
+  #.......................................  
+- block:
+
+
+  - name: Package remove
+    ansible.builtin.include_tasks:
+      file: "{{ ansible_distribution }}-rm.yml"
+
+  # - name: "Remove the config file"
+  #   ansible.builtin.file:
+  #     path: /etc/alloy/config.alloy
+  #     state: absent
+  #   become: true
+
+  when: alloy_state == 'absent'
