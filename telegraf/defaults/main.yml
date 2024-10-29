@@ -8,3 +8,6 @@ influx_apache: false
 influx_mariadb: false  
 influx_memcache: false  
 influx_redis: false  
+
+influx_delete_config: false
+influx_delete_data: false

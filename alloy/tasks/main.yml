@@ -6,18 +6,35 @@
 
   - name: Package install
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-install.yml"
+      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-install.yml"
+    vars:
+      package: alloy
 
   ##################
   # Configure
 
-  - name: Template config to  /etc/alloy/config.alloy
-    ansible.builtin.copy:
-      src: "{{ item}}"
-      dest: /etc/alloy/
-    with_fileglob:
-      - "*.alloy"
+  # - name: Template config to  /etc/alloy/config.alloy
+  #   ansible.builtin.copy:
+  #     src: "{{ item}}"
+  #     dest: /etc/alloy/
+  #   with_fileglob:
+  #     - "*.alloy"
+  #   become: true
+
+  - name: "Template config  in /etc/alloy/config.allow "
+    ansible.builtin.template:
+      src: client-config-alloy.j2
+      dest: /etc/alloy/config.alloy
     become: true
+
+  - name: "Template config  in /etc/default/alloy"
+    ansible.builtin.template:
+      src: etc-default-alloy.j2
+      dest: /etc/default/alloy
+    become: true
+
+  ##################
+  # Restart Service
 
   # - name: systemd reload configs and restart Loki
   #   ansible.builtin.systemd_service:
@@ -32,15 +49,37 @@
   #.......................................  
 - block:
 
+  - block:
+
+    # NOTE:  you have to remove all the config files before the package
+    # THey have a script that tracks them and messes up the remove.
+
+    - name: "Remove the config files"
+      ansible.builtin.file:
+        path: /etc/alloy
+        state: absent
+      become: true
+      when: alloy_delete_config
+
+    - name: "Remove the default file"
+      ansible.builtin.file:
+        path: /etc/default/alloy
+        state: absent
+      become: true
+
+    when: alloy_delete_config
 
   - name: Package remove
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-rm.yml"
+      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-rm.yml"
+    vars:
+      package: alloy
 
-  # - name: "Remove the config file"
-  #   ansible.builtin.file:
-  #     path: /etc/alloy/config.alloy
-  #     state: absent
-  #   become: true
+  - name: "Remove the data files"
+    ansible.builtin.file:
+      path: /var/lib/alloy
+      state: absent
+    become: true
+    when: alloy_delete_data
 
   when: alloy_state == 'absent'

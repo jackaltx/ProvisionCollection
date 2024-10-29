@@ -10,9 +10,18 @@
     vars:
       package: telegraf
 
+  ##################
+  # Configure
+
   - name: Configure the plugins
     ansible.builtin.include_tasks:
       file: telegrafd-setup.yml
+
+  - name: sometimes /etc/telegraf.conf does not get create???
+    ansible.builtin.copy:
+      src: telegraf.conf
+      dest: /etc/telegraf/telegraf.conf
+    become: true
 
   # All the secrets are passed in via an evironment file
   - name: copy config to /etc/default/telegraf
@@ -39,6 +48,8 @@
       mode: 0644
     become: true
 
+  ##################
+  # Restart Service
 
   - name: systemd reload configs and restart telegraf
     ansible.builtin.systemd_service:
@@ -53,28 +64,33 @@
 
 - block:
 
-  - name: systemd stop telegraf
-    ansible.builtin.systemd_service:
-      name: telegraf
-      state: stopped
-    become: true
-
   - name: Package remove
     ansible.builtin.include_tasks:
       file: "../../shared/influxdb/tasks/{{ ansible_distribution }}-rm.yml"
     vars:
       package: telegraf
 
-  - name: "Remove the config file"
-    ansible.builtin.file:
-      path: /etc/telegraf/telegraf.d
-      state: absent
-    become: true
+  - block:
 
-  - name: "Remove the default file"
+    - name: "Remove the config files at /etc/telegraf"
+      ansible.builtin.file:
+        path: /etc/telegraf
+        state: absent
+      become: true
+
+    - name: "Remove the default file"
+      ansible.builtin.file:
+        path: /etc/default/telegraf
+        state: absent
+      become: true
+      
+    when: influx_delete_config
+
+  - name: "Remove the data files"
     ansible.builtin.file:
-      path: /etc/default/telegraf
+      path: /var/lib/telegraf
       state: absent
     become: true
+    when: influx_delete_data
 
   when: telegraf_state == 'absent'

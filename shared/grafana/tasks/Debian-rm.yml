@@ -1,9 +1,21 @@
-  - name: "Remove Alloy package"
-    ansible.builtin.apt:
-      update_cache: true
-      pkg:
-        - alloy
-      autoremove: true
-      autoclean: true
-      state: absent
-    become: true
+---
+
+- name: Populate service facts
+  ansible.builtin.service_facts:
+
+- name: "systemd stop {{ package }}"
+  ansible.builtin.systemd_service:
+    name: "{{ package }}"
+    state: stopped
+  when:  ansible_facts.services['"{{ package }}".service'] is defined
+  become: true
+
+- name: "Remove {{ package }} package"
+  ansible.builtin.apt:
+    update_cache: true
+    pkg:
+      - "{{ package }}"
+    autoremove: true
+    autoclean: true
+    state: absent
+  become: true

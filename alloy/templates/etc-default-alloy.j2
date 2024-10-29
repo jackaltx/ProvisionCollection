@@ -7,10 +7,10 @@
 # Command line options for Alloy.
 #
 # The configuration file holding the Alloy config.
-CONFIG_FILE="/etc/alloy/config.alloy"
+CONFIG_FILE = "{{ alloy_config }}"
 
 # User-defined arguments to pass to the run command.
-CUSTOM_ARGS="--disable-reporting --server.http.listen-addr=0.0.0.0:12345"
+CUSTOM_ARGS="{{ alloy_custom_args }}"
 
 # Restart on system upgrade. Defaults to true.
 RESTART_ON_UPGRADE=true

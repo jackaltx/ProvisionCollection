@@ -7,7 +7,9 @@
 
   - name: Package install
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-install.yml"
+      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-install.yml"
+    vars:
+      package: loki
 
   ##################
   # Configure
@@ -17,6 +19,9 @@
       src: config.yml.j2
       dest: /etc/loki/config.yml
     become: true
+
+  ##################
+  # Restart Service
 
   - name: systemd reload configs and restart Loki
     ansible.builtin.systemd_service:
@@ -31,19 +36,16 @@
   #.......................................  
 - block:
 
-  - name: systemd reload configs and restart Loki
-    ansible.builtin.systemd_service:
-      name: loki
-      state: stop
-    become: true
-
   - name: Package remove
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-rm.yml"
+      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-rm.yml"
+    vars:
+      package: loki
 
-  - name: "Remove the config file"
+
+  - name: "Remove the config files /etc/loki"
     ansible.builtin.file:
-      path: /etc/loki/config.yml
+      path: /etc/loki
       state: absent
     become: true
 

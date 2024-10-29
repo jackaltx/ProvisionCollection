@@ -6,7 +6,10 @@
 
   - name: Package install
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-install.yml"
+      file: "../../shared/influxdb/tasks/{{ ansible_distribution }}-install.yml"
+    vars:
+      package: influxdb2
+
 
   ##################
   # Configure
@@ -33,63 +36,12 @@
   - name: Initialize a new influxdb instance
     block:
 
-    - name: "create initial db user"
-      ansible.builtin.shell:
-        cmd: "/usr/bin/influx setup --org {{ influxdb_org }} --bucket {{ influxdb_bucket }} --username {{ influxdb_username }} --password {{ influxdb_password }} --force"
-      register: cmd_result
-      failed_when: cmd_result.rc != 0
-      become: true
+    - include_tasks: initializedb.yml
+    #   vars:
+    #     influx_auth_dict: []
 
-    - ansible.builtin.debug:
-        var: cmd_result.stdout
-
-    - name: "create initial admin token"
-      ansible.builtin.shell:
-        cmd: influx auth create --org lavnet --all-access --description admin --json
-      register: cmd_result
-      failed_when: cmd_result.rc != 0
-      become: true
-    - ansible.builtin.debug:
-        var: cmd_result.stdout
-        verbosity: 1
-    - set_fact:
-        influx_admin: "{{ cmd_result.stdout| from_json }}"
-    - debug:
-        var: influx_admin.id
-    - debug:
-        var: influx_admin.token
-    - debug:
-        var: influx_admin.description
-
-
-    - name: "create initial operator token"
-      ansible.builtin.shell:
-        cmd: influx auth create --org lavnet --operator --description operator --json
-      register: cmd_result
-      failed_when: cmd_result.rc != 0
-      become: true
-    - ansible.builtin.debug:
-        var: cmd_result.stdout
-        verbosity: 1
-    - set_fact:
-        influx_operator: "{{ cmd_result.stdout| from_json }}"
-    - debug:
-        var: influx_operator.id
-    - debug:
-        var: influx_operator.token
-    - debug:
-        var: influx_operator.description
-
-
-
-    # - name: "import dashboard template"
-    #   ansible.builtin.shell:
-    #     cmd: influx apply -u https://raw.githubusercontent.com/influxdata/community-templates/master/linux_system/linux_system.yml
-    #   register: cmd_result
-    #   become: true
-
-    # - ansible.builtin.debug:
-    #     var: cmd_result
+    # - debug:
+    #     var: influx_auth_dict
 
     rescue:
       - name: Print when errors
@@ -102,15 +54,11 @@
 #=============================================================================================================
 - block:
 
-  - name: Stop service influxd, if running
-    ansible.builtin.systemd_service:
-      name: influxd
-      state: stopped
-    become: true
-
   - name: Package remove
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-rm.yml"
+      file: "../../shared/influxdb/tasks/{{ ansible_distribution }}-rm.yml"
+    vars:
+      package: influxdb2
 
   #.........................
   - block:

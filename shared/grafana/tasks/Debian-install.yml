@@ -20,6 +20,6 @@
     ansible.builtin.apt:
       update_cache: true
       pkg:
-        - alloy
+        - "{{ package }}"
 
   become: true

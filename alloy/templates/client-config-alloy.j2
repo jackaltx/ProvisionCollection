@@ -42,6 +42,6 @@ loki.source.journal "read"  {
 
 loki.write "monitor0" {
   endpoint {
-    url = "http://127.0.0.1:3100/loki/api/v1/push"
+    url = "http://{{ alloy_loki_endpoint }}:3100/loki/api/v1/push"
   }
 }

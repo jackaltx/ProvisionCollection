@@ -1,9 +1,0 @@
-  - name: "Remove Alloy package"
-    ansible.builtin.apt:
-      update_cache: true
-      pkg:
-        - alloy
-      autoremove: true
-      autoclean: true
-      state: absent
-    become: true
