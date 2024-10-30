@@ -2,6 +2,8 @@
 # tasks file for influxdb
 
 #=============================================================================================================
+# Install block
+#
 - block:
 
   - name: Package install
@@ -33,16 +35,14 @@
     become: true
 
   #.........................
-  - name: Initialize a new influxdb instance
+  # This captures the failure just in case it already exists!!!! 
+  #
+
+  - name: Initialize the new influxdb instance
     block:
 
     - include_tasks: initializedb.yml
-    #   vars:
-    #     influx_auth_dict: []
-
-    # - debug:
-    #     var: influx_auth_dict
-
+ 
     rescue:
       - name: Print when errors
         ansible.builtin.debug:
@@ -52,13 +52,16 @@
 
 
 #=============================================================================================================
+#  Remove Block
+#
 - block:
 
   - name: Package remove
     ansible.builtin.include_tasks:
-      file: "../../shared/influxdb/tasks/{{ ansible_distribution }}-rm.yml"
+      file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
     vars:
       package: influxdb2
+      service_name: influxd.service
 
   #.........................
   - block:

@@ -11,3 +11,31 @@ influx_redis: false
 
 influx_delete_config: false
 influx_delete_data: false
+
+
+# SMELL TODO 
+influx_output1: false
+influx_url1: "https://monitor1.a0a0.org"
+influx_operators_token1: "none"
+influx_bucket1: "none"
+influx_org1: "none"
+
+
+# SMELL TODO
+#  this needs to be and abitrafy number and include ALL telegraf arguments.
+#  then we can built up from a template
+
+
+# The first is a reference unit/service (not required)
+influx_output1: true
+influx_url1: "http://127.0.0.1"
+influx_operators_token1: ""
+influx_bucket1: "lavnet"
+influx_org1: "lavnet"
+
+#  The seconds is the unit under test
+influx_output2: true
+influx_url2: "http://127.0.0.1"
+influx_operators_token2: ""
+influx_bucket2: "lavnet"
+influx_org2: "lavnet"

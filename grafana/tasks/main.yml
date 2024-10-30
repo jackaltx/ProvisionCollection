@@ -31,16 +31,13 @@
   #.......................................  
 - block:
 
-  - name: systemd reload configs and restart Grafana
-    ansible.builtin.systemd_service:
-      name: grafana-server
-      state: stop
-    become: true
-
   - name: Package remove
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-rm.yml"
-
+      file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
+    vars:
+      package: grafana
+      service_name: grafana.service
+  
   - name: "Remove the config file"
     ansible.builtin.file:
       path: /etc/grafana/config.yml

@@ -5,9 +5,6 @@ influxdb_data_path: /var/lib/influxdb
 influxdb_level: info
 influxdb_state: 'present'
 
-influxdb_delete_config: true
-influxdb_delete_data: true
-
 influxdb_org:  lavnet 
 influxdb_bucket: lavnet 
 influxdb_username: lavender
@@ -18,3 +15,5 @@ influxdb_key: ""
 
 influxdb_delete_config: false
 influxdb_delete_data: false
+
+influx_operators_token: ""

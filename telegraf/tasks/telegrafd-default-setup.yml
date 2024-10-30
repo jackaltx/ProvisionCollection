@@ -1,0 +1,22 @@
+---
+
+- set_fact:
+    influx_operators_token2: "{{ influx_operators_token }}"
+
+#############################################################
+# All the secrets are passed in via an evironment file
+#
+- name: copy config to /etc/default/telegraf
+  ansible.builtin.template:
+    src: etc-default-telegraf-localhost.j2
+    dest: /etc/default/telegraf
+    group: telegraf
+    mode: 0640
+    decrypt: true
+    force: true
+  register: config_status
+  become: true
+
+- ansible.builtin.debug:
+    var: config_status
+    verbosity: 1

@@ -1,6 +1,13 @@
 ---
-
+###############################################################################
 # Initialize a new influxdb instance
+# If the database was already setup up, then it will fail at the very first task.
+# Caller must catch.  
+#
+# This produces a file in the playbook directory of "/influx_auth/<ansible_name>.yml"
+#
+#  This may be a bad design, but I dont see re-use.
+#
 
 - name: "create initial Influxdb user"
   ansible.builtin.shell:
@@ -20,31 +27,16 @@
   register: cmd_result
   failed_when: cmd_result.rc != 0
   become: true
-- ansible.builtin.debug:
-    var: cmd_result.stdout
-    verbosity: 1
+
 - set_fact:
     influx_admin: "{{ cmd_result.stdout| from_json }}"
 
-# - debug:
-#     var: influx_admin.id
-# - debug:
-#     var: influx_admin.token
-# - debug:
-#     var: influx_admin.description
-
-- name: add  influx_admin to influx_auth_list
-  set_fact:
+- set_fact:
     influx_auth_list: "{{ influx_auth_list | default([]) + [{
         'id': influx_admin.id,
         'token': influx_admin.token,
         'description': influx_admin.description
       }] }}"
-
-- debug:
-    var: influx_auth_list
-
-
 
 
 #................................................................................
@@ -54,37 +46,41 @@
   register: cmd_result
   failed_when: cmd_result.rc != 0
   become: true
-- ansible.builtin.debug:
-    var: cmd_result.stdout
-    verbosity: 1
+
 - set_fact:
     influx_operator: "{{ cmd_result.stdout| from_json }}"
 
-# - debug:
-#     var: influx_operator.id
-# - debug:
-#     var: influx_operator.token
-# - debug:
-#     var: influx_operator.description
+# This is used at the playbook level by telegraf, iff it is non-zero length.
+- set_fact:
+    influx_operators_token: "{{ influx_operator.token }}"
 
-- name: add  influx_operator to influx_auth_list
-  set_fact:
+- set_fact:
     influx_auth_list: "{{ influx_auth_list | default([]) + [{
         'id': influx_operator.id, 
         'token': influx_operator.token,
         'description': influx_operator.description
       }] }}"
 
-- name: Create auth file for this host
+#................................................................................
+- name: Create token file for this host
   local_action: 
       module: ansible.builtin.copy
       content: "{{ influx_auth_list  | to_nice_yaml  }}"
-      dest: "{{ lookup('env', 'PWD') }}/influx-auth-{{ ansible_hostname }}.yml"
+      dest: "{{ lookup('env', 'PWD') }}/data/influx-tokens-{{ ansible_hostname }}.yml"
       owner: "{{ lookup('env', 'USER') }}"
-      mode: 0640
-        
+      mode: 0600
+
+- name: Create influx passed file for this host
+  local_action: 
+      module: ansible.builtin.copy
+      content: "\nUsername: {{ influxdb_username }}\n password: {{ influxdb_password }} \n"
+      dest: "{{ lookup('env', 'PWD') }}/data/influx-webui-access-{{ ansible_hostname }}.txt"
+      owner: "{{ lookup('env', 'USER') }}"
+      mode: 0600
+
 - debug:
     var: influx_auth_list
+    verbosity: 1
 
 #................................................................................
 #................................................................................

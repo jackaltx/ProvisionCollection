@@ -38,9 +38,10 @@
 
   - name: Package remove
     ansible.builtin.include_tasks:
-      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-rm.yml"
+      file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
     vars:
       package: loki
+      service_name: loki.service
 
 
   - name: "Remove the config files /etc/loki"

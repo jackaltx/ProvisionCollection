@@ -71,9 +71,10 @@
 
   - name: Package remove
     ansible.builtin.include_tasks:
-      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-rm.yml"
+      file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
     vars:
       package: alloy
+      service_name: allow.service
 
   - name: "Remove the data files"
     ansible.builtin.file:
