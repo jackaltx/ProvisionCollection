@@ -38,15 +38,32 @@
   # This captures the failure just in case it already exists!!!! 
   #
 
-  - name: Initialize the new influxdb instance
+  - name: Initialize the new influxdb instance (note, must be running)
     block:
 
     - include_tasks: initializedb.yml
  
     rescue:
-      - name: Print when errors
-        ansible.builtin.debug:
-          msg: "Cannot be setup via ansible.\n The script cannot access SSL and/or it was already setup once!!!"
+        - block:
+
+          - name: Maybe and exiting setup, so get auth list from a cmd, register output
+            ansible.builtin.command: '/usr/bin/influx auth list --json'
+            become: true
+            register: cmd_result
+            failed_when: cmd_result.rc != 0
+
+          - name: converting json to list of dictionaries
+            set_fact:
+              full_list: "{{ cmd_result.stdout| from_json }}"
+
+          - name:  This is used by telegraf.
+            set_fact:
+              influx_operators_token: "{{ (full_list|selectattr('description', 'search', 'operator')|list|first).token }}"
+
+          rescue:
+            - name: Print when errors
+              ansible.builtin.debug:
+                msg: "Telegraf cannot be setup via ansible.\n The script cannot access SSL and/or some other wierd setup."
    
   when: influxdb_state == 'present'
 

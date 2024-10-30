@@ -8,7 +8,7 @@ influxdb_state: 'present'
 influxdb_org:  lavnet 
 influxdb_bucket: lavnet 
 influxdb_username: lavender
-influxdb_password: ThisIsATest 
+influxdb_password: "generated" 
 
 influxdb_cert: ""
 influxdb_key: ""
