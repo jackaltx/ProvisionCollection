@@ -1,0 +1,37 @@
+---
+
+myInfluxdb_dict:
+  localhost:
+    url: "http://127.0.0.1"
+    token: ""
+    ucket1: "telegraf"
+    org1: "anOrg"
+    bucket_tag: ""
+    exclude_bucket_tag: ""
+    ping_timeout: "0s"
+    read_idle_timeout: "0s"
+    insecure_skip_verify: false
+  monitor0:
+    output: true
+    url: "http://monitor0.a0a0.org"
+    token: "5SFfaeFNGAEJlu5FXo4ThGVuJZO5inyTE6OiqpKkHPN1L9ORJgvQEzgO-Gx0VcSCshttTldBv2os0jijpmKC2A=="
+    bucket: "lavnet"
+    org: "lavnet"
+    bucket_tag: ""
+    exclude_bucket_tag: ""
+    ping_timeout: "0s"
+    read_idle_timeout: "0s"
+    insecure_skip_verify: false
+  monitor1:
+    output: false
+    url: "https://monitor1.a0a0.org"
+    token: "hhqgh0-3SS4-U4xl9z_IclwerU7I6eKqRDrAmWjtwUfMpotmTmozNqXJ-Ca3NQr5E3yHhpdlRikWFgLOjvgyWw=="
+    bucket: "lavnet"
+    org: "lavnet"
+    bucket_tag: ""
+    exclude_bucket_tag: ""
+    ping_timeout: "0s"
+    read_idle_timeout: "0s"
+    insecure_skip_verify: false
+
+

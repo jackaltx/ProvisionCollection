@@ -16,4 +16,7 @@ influxdb_key: ""
 influxdb_delete_config: false
 influxdb_delete_data: false
 
+# SMELL this is used to comminicate with telegraf
 influx_operators_token: ""
+
+influx_force_reload: false

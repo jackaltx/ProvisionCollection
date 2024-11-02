@@ -16,7 +16,7 @@
       src: grafana.list
       dest: /etc/apt/sources.list.d/grafana.list
 
-  - name: "Install Alloy OSS package"
+  - name: "Install {{ package }} OSS package"
     ansible.builtin.apt:
       update_cache: true
       pkg:

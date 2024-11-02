@@ -5,35 +5,49 @@
   #.......................................  
 - block:
 
-  - name: Package install
+  - name: Is loki running?
     ansible.builtin.include_tasks:
-      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-install.yml"
+      file: "../../shared/any/tasks/is-service-running.yml"
     vars:
-      package: loki
+      service_name: loki.service
 
-  ##################
-  # Configure
+  #......................................................................................
+  # only install it not running...
 
-  - name: Template config to  /etc/loki/config.yml
-    ansible.builtin.template:
-      src: config.yml.j2
-      dest: /etc/loki/config.yml
-    become: true
+  - name: Install package and configure iff not running or forced
+    block:
 
-  ##################
-  # Restart Service
+    - name: Package install
+      ansible.builtin.include_tasks:
+        file: "../../shared/grafana/tasks/{{ ansible_distribution }}-install.yml"
+      vars:
+        package: loki
 
-  - name: systemd reload configs and restart Loki
-    ansible.builtin.systemd_service:
-      daemon_reload: true
-      name: loki
-      state: restarted
-      enabled: true
-    become: true
+    ##################
+    # Configure
+
+    - name: Template config to  /etc/loki/config.yml
+      ansible.builtin.template:
+        src: config.yml.j2
+        dest: /etc/loki/config.yml
+      become: true
+
+    ##################
+    # Restart Service
+
+    - name: systemd reload configs and restart Loki
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+        name: loki
+        state: restarted
+        enabled: true
+      become: true
+
+    when: service_running is false or loki_force_reload
 
   when: loki_state == 'present'
 
-  #.......................................  
+  #....................................................................  
 - block:
 
   - name: Package remove

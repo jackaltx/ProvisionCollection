@@ -54,18 +54,20 @@
     # NOTE:  you have to remove all the config files before the package
     # THey have a script that tracks them and messes up the remove.
 
-    - name: "Remove the config files"
+    - name: "Remove Grafana-Alloy configuration files"
       ansible.builtin.file:
-        path: /etc/alloy
+        path: "{{ item }}"
         state: absent
       become: true
-      when: alloy_delete_config
+      loop:
+        - /etc/default/alloy
+        - /etc/alloy
+      register: file_cleanup
+      ignore_errors: "{{ ansible_check_mode }}"
+      failed_when: 
+        - file_cleanup.failed is defined
+        - file_cleanup.failed and not ansible_check_mode
 
-    - name: "Remove the default file"
-      ansible.builtin.file:
-        path: /etc/default/alloy
-        state: absent
-      become: true
 
     when: alloy_delete_config
 
@@ -80,6 +82,11 @@
     ansible.builtin.file:
       path: /var/lib/alloy
       state: absent
+      register: file_cleanup
+      ignore_errors: "{{ ansible_check_mode }}"
+    failed_when: 
+      - file_cleanup.failed is defined
+      - file_cleanup.failed and not ansible_check_mode
     become: true
     when: alloy_delete_data
 

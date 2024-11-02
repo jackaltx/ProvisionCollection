@@ -6,15 +6,29 @@
 
   - name: Package install
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-install.yml"
+      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-install.yml"
+    vars:
+      package: grafana
 
   ##################
   # Configure
 
-  - name: Template config to  /etc/Grafana/config.yml
+  - name: copy config to /etc/default/grafana-server
     ansible.builtin.template:
-      src: client_config.yml.j2
-      dest: /etc/grafana/config.yml
+      src: etc-default-grafana-server.j2
+      dest: /etc/default/grafana-server
+      mode: 0640
+    register: config_status
+    become: true
+
+  - ansible.builtin.debug:
+      var: config_status
+      verbosity: 1
+
+  - name: Template config to /etc/grafana/config.yml
+    ansible.builtin.template:
+      src: client_config.ini.j2
+      dest: /etc/grafana/grafana.ini
     become: true
 
   - name: systemd reload configs and restart Grafana
@@ -24,6 +38,19 @@
       state: restarted
       enabled: true
     become: true
+
+  # - name: make the dashboards directory
+  #   ansible.builtin.file:
+  #     path: "{{ grafana__data_dir }}/dashboards"
+  #     state: directory
+  #   become: true
+
+  - name: copy in dashboards
+    ansible.builtin.copy:
+      src: provisioning
+      dest: "/etc/grafana"
+    become: true
+
 
   when: grafana_state == 'present'
 
@@ -36,11 +63,17 @@
       file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
     vars:
       package: grafana
-      service_name: grafana.service
+      service_name: grafana-server.service
   
-  - name: "Remove the config file"
+  - name: "Remove the config files"
     ansible.builtin.file:
-      path: /etc/grafana/config.yml
+      path: /etc/grafana
+      state: absent
+    become: true
+
+  - name: "Remove the defaults file"
+    ansible.builtin.file:
+      path: /etc/default/grafana-server
       state: absent
     become: true
 

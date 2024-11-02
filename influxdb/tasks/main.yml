@@ -6,35 +6,57 @@
 #
 - block:
 
-  - name: Package install
+  - name: Is influxd runnin?
     ansible.builtin.include_tasks:
-      file: "../../shared/influxdb/tasks/{{ ansible_distribution }}-install.yml"
+      file: "../../shared/any/tasks/is-service-running.yml"
     vars:
-      package: influxdb2
+      service_name: influxd.service
+
+  #......................................................................................
+  # only install it not running...
+
+  - name: Install package and configure iff not running or forced
+    block:
+
+    #################
+    # Install Package
+
+    - name: Package install
+      ansible.builtin.include_tasks:
+        file: "../../shared/influxdb/tasks/{{ ansible_distribution }}-install.yml"
+      vars:
+        package: influxdb2
 
 
-  ##################
-  # Configure
+    ##################
+    # Configure
 
-  - name: "Prepare /etc/influxd"
-    ansible.builtin.file:
-      path: /etc/influxdb
-      state: directory
-    become: true
+    # - name: Check if configuration file exists
+    #   stat:
+    #     path: "{{ SEARCH_PATH }}/{{ SEARCH_FILE }}"
+    #   register: result
 
-  - name: "Template config for storage in /etc/influxd"
-    ansible.builtin.template:
-      src: config.toml.j2
-      dest: /etc/influxdb/config.toml
-    become: true
+    - name: "Prepare /etc/influxd"
+      ansible.builtin.file:
+        path: /etc/influxdb
+        state: directory
+      become: true
 
-  - name: Restart service influxd, if running
-    ansible.builtin.systemd_service:
-      name: influxd
-      state: restarted
-    become: true
+    - name: "Template config for storage in /etc/influxd"
+      ansible.builtin.template:
+        src: config.toml.j2
+        dest: /etc/influxdb/config.toml
+      become: true
 
-  #.........................
+    - name: Restart service influxd, if running
+      ansible.builtin.systemd_service:
+        name: influxd
+        state: restarted
+      become: true
+  
+    when: service_running is false or influx_force_reload
+
+  #......................................................................................
   # This captures the failure just in case it already exists!!!! 
   #
 
@@ -83,24 +105,21 @@
   #.........................
   - block:
 
-    - name: "Remove the default file"
+    - name: "Remove InfluxDB configuration files"
       ansible.builtin.file:
-        path: /etc/default/influxdb2
+        path: "{{ item }}"
         state: absent
       become: true
-
-    - name: "Remove the config files"
-      ansible.builtin.file:
-        path: /etc/influxdb
-        state: absent
-      become: true
-
-    - name: "Remove the root config files"
-      ansible.builtin.file:
-        path: /root/.influxdbv2
-        state: absent
-      become: true
-
+      loop:
+        - /etc/default/influxdb2
+        - /etc/influxdb
+        - /root/.influxdbv2
+      register: file_cleanup
+      ignore_errors: "{{ ansible_check_mode }}"
+      failed_when: 
+        - file_cleanup.failed is defined
+        - file_cleanup.failed and not ansible_check_mode
+        
     when: influxdb_delete_config
 
   #.........................

@@ -13,17 +13,25 @@
   ##################
   # Configure
 
-  - name: Configure the plugins
-    ansible.builtin.include_tasks:
-      file: telegrafd-setup.yml
-
   - name: sometimes /etc/telegraf.conf does not get created???
     ansible.builtin.copy:
       src: telegraf.conf
       dest: /etc/telegraf/telegraf.conf
     become: true
 
-  - name: Configure default file
+  - name: Configure the inputs to collect
+    ansible.builtin.include_tasks:
+      file: telegrafd-inputs-setup.yml
+
+  - name: configure outputs to influxdb
+    ansible.builtin.include_tasks:
+      file: telegrafd-outputs-setup.yml
+
+  - name: edge case, when the URL is localhost and it empty, then set it up
+    ansible.builtin.include_tasks:
+      file: influxdb-localhost-operators-token.yml
+
+  - name: Configure /etc/default/telegraf file
     ansible.builtin.include_tasks:
       file: telegrafd-default-setup.yml
 
@@ -35,43 +43,7 @@
 #
 - block:
 
-
-
-  #...................................................
-  # - name: Populate service facts
-  #   ansible.builtin.service_facts:
-
-  # - debug:
-  #     var: ansible_facts.services
-
-  # - set_fact:
-  #     service_running: "{{ true if ansible_facts.services['telegraf.service'].state is defined else false }}"
-
-
-  # - name : "Is the service: {{ package }} running?"
-  #   debug:
-  #     var: service_running
-  #     verbosity: 0
-
-  # - name: "Systemd stop {{ package }}"
-  #   ansible.builtin.systemd_service:
-  #     name: "telegraf"
-  #     state: stopped
-  #     ignore_errors: true
-  #   register: cmd_results
-  #   when:  service_running
-  #   become: true
-
-  # - name : " {{ package }} stopped results"
-  #   debug:
-  #     var: cmd_results
-  #     verbosity: 0
-
-
-
-
-
-  #...........................................
+  #.......................................................................
   - name: Package remove
     ansible.builtin.include_tasks:
       file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
@@ -79,28 +51,37 @@
       package: 'telegraf'
       service_name: 'telegraf.service'
 
-  # ...............................................................
+  # .......................................................................
   - block:
 
-    - name: "Remove the config files at /etc/telegraf"
+    - name: "Remove Telegraf configuration files"
       ansible.builtin.file:
-        path: /etc/telegraf
+        path: "{{ item }}"
         state: absent
       become: true
+      loop:
+        - /etc/default/telegraf
+        - /etc/telegraf
+      register: file_cleanup
+      ignore_errors: "{{ ansible_check_mode }}"
+      failed_when: 
+        - file_cleanup.failed is defined
+        - file_cleanup.failed and not ansible_check_mode
+      when: telegraf_delete_config
 
-    - name: "Remove the default file"
-      ansible.builtin.file:
-        path: /etc/default/telegraf
-        state: absent
-      become: true
-      
-    when: influx_delete_config
-
-  - name: "Remove the data files"
+  - name: "Remove the Telegraf data files"
     ansible.builtin.file:
       path: /var/lib/telegraf
       state: absent
     become: true
-    when: influx_delete_data
+    register: file_cleanup
+    ignore_errors: "{{ ansible_check_mode }}"
+    failed_when: 
+      - file_cleanup.failed is defined
+      - file_cleanup.failed and not ansible_check_mode
+    when: telegraf_delete_data
+
+  - debug:
+      var: telegraf_delete_data
 
   when: telegraf_state == 'absent'

@@ -1,0 +1,25 @@
+---
+
+- name: IFF influx is localhost, then we can do this
+  ansible.builtin.command: '/usr/bin/influx auth list --json'
+  become: true
+  register: cmd_result
+  failed_when: cmd_result.rc != 0
+
+- name: converting json to list of dictionaries
+  set_fact:
+    full_list: "{{ cmd_result.stdout| from_json }}"
+
+
+- name: This is used by telegraf
+  set_fact:
+    telgraf2influx_configs: "{{ telgraf2influx_configs | combine(
+      {
+        item.key: {
+          'token': (full_list|selectattr('description', 'search', 'operator')|list|first).token | default('')
+        }
+      },
+      recursive=True
+    ) }}"
+  loop: "{{ lookup('dict', telgraf2influx_configs) }}"
+  when: item.value.output and item.value.token|length == 0 and item.key == 'localhost'

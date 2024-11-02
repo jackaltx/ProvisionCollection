@@ -1,7 +1,7 @@
 ---
 
 - set_fact:
-    influx_operators_token2: "{{ influx_operators_token }}"
+    influx_operators_token1: "{{ influx_operators_token }}"
 
 #############################################################
 # All the secrets are passed in via an evironment file

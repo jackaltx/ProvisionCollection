@@ -5,6 +5,11 @@
   #..............................................
   # These are the default inputs....no output!
   #
+  - name: clear the telegraf.d configuraiton files
+    ansible.builtin.file:
+      path: /etc/telegraf/telegraf.d
+      state: absent
+
   - name: copy telegraf.d configuration files
     ansible.builtin.copy:
       src: telegraf.d
@@ -36,22 +41,6 @@
       src: mariadb.conf
       dest: /etc/telegraf/telegraf.d/mariadb.conf
     when: influx_mariadb
-
-  #..............................................
-  # Ouputs
-  #
-
-  - name: first output
-    ansible.builtin.copy:
-      src: output1.conf
-      dest: /etc/telegraf/telegraf.d/output1.conf
-    when: influx_output1
-
-  - name: second output
-    ansible.builtin.copy:
-      src: output2.conf
-      dest: /etc/telegraf/telegraf.d/output2.conf
-    when: influx_output2
 
   become: true
 
