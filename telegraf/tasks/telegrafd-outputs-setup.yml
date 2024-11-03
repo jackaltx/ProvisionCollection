@@ -10,6 +10,6 @@
     src: output.j2
     dest: "/etc/telegraf/telegraf.d/output-{{ item.key }}.conf"
   loop: "{{ lookup('dict', telgraf2influx_configs)  }}"
-  when: item.value.output
+  when: item.key in telegraf_outputs
   become: true
 

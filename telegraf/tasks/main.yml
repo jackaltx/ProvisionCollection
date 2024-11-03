@@ -18,6 +18,8 @@
       src: telegraf.conf
       dest: /etc/telegraf/telegraf.conf
     become: true
+    notify: 
+      - restart telegraf
 
   - name: Configure the inputs to collect
     ansible.builtin.include_tasks:
@@ -34,7 +36,7 @@
   - name: Configure /etc/default/telegraf file
     ansible.builtin.include_tasks:
       file: telegrafd-default-setup.yml
-
+ 
   when: telegraf_state == 'present'
 
 

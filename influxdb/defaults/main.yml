@@ -6,7 +6,7 @@ influxdb_level: info
 influxdb_state: 'present'
 
 influxdb_org:  lavnet 
-influxdb_bucket: lavnet 
+influxdb_bucket: telegraf 
 influxdb_username: lavender
 influxdb_password: "generated" 
 

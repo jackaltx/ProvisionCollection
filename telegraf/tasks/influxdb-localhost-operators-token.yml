@@ -1,25 +1,36 @@
 ---
 
-- name: IFF influx is localhost, then we can do this
-  ansible.builtin.command: '/usr/bin/influx auth list --json'
-  become: true
-  register: cmd_result
-  failed_when: cmd_result.rc != 0
+- name: influx binary exist?
+  ansible.builtin.stat:
+    path: '/usr/bin/influx'
+  register: influx_bin
 
-- name: converting json to list of dictionaries
-  set_fact:
-    full_list: "{{ cmd_result.stdout| from_json }}"
+- debug:
+    var: influx_bin.stat.exists
 
+- block:
 
-- name: This is used by telegraf
-  set_fact:
-    telgraf2influx_configs: "{{ telgraf2influx_configs | combine(
-      {
-        item.key: {
-          'token': (full_list|selectattr('description', 'search', 'operator')|list|first).token | default('')
-        }
-      },
-      recursive=True
-    ) }}"
-  loop: "{{ lookup('dict', telgraf2influx_configs) }}"
-  when: item.value.output and item.value.token|length == 0 and item.key == 'localhost'
+  - name: IFF influx is localhost, then we can do this
+    ansible.builtin.command: '/usr/bin/influx auth list --json'
+    become: true
+    register: cmd_result
+    failed_when: cmd_result.rc != 0
+
+  - name: converting json to list of dictionaries
+    set_fact:
+      full_list: "{{ cmd_result.stdout| from_json }}"
+
+  - name: build the telgraf2influx_configs fact dictionary
+    set_fact:
+      telgraf2influx_configs: "{{ telgraf2influx_configs | combine(
+        {
+          item.key: {
+            'token': (full_list|selectattr('description', 'search', 'operator')|list|first).token | default('')
+          }
+        },
+        recursive=True
+      ) }}"
+    loop: "{{ lookup('dict', telgraf2influx_configs) }}"
+    when: item.value.output and item.value.token|length == 0 and item.key == 'localhost'
+  
+  when: influx_bin.stat.exists

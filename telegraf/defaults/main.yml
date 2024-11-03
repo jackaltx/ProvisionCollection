@@ -31,3 +31,5 @@ influx_url2: "http://127.0.0.1"
 influx_operators_token2: ""
 influx_bucket2: "telegraf"
 influx_org2: "anOrg"
+
+telgraf2influx_configs: {}

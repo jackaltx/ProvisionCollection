@@ -32,5 +32,6 @@
       - "{{ package }}"
     autoremove: true
     autoclean: true
+    purge: true
     state: absent
   become: true
