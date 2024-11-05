@@ -26,23 +26,16 @@
       src: client-config-alloy.j2
       dest: /etc/alloy/config.alloy
     become: true
+    notify:
+      - restart alloy
 
   - name: "Template config  in /etc/default/alloy"
     ansible.builtin.template:
       src: etc-default-alloy.j2
       dest: /etc/default/alloy
     become: true
-
-  ##################
-  # Restart Service
-
-  # - name: systemd reload configs and restart Loki
-  #   ansible.builtin.systemd_service:
-  #     daemon_reload: true
-  #     name: loki
-  #     state: restarted
-  #     enabled: true
-  #   become: true
+    notify:
+      - restart alloy
 
   when: alloy_state == 'present'
 

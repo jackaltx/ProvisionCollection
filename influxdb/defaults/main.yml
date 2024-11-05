@@ -20,3 +20,4 @@ influxdb_delete_data: false
 influx_operators_token: ""
 
 influx_force_reload: false
+influx_force_configure: false

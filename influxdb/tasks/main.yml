@@ -36,23 +36,30 @@
     #     path: "{{ SEARCH_PATH }}/{{ SEARCH_FILE }}"
     #   register: result
 
-    - name: "Prepare /etc/influxd"
-      ansible.builtin.file:
-        path: /etc/influxdb
-        state: directory
-      become: true
+    - block:
 
-    - name: "Template config for storage in /etc/influxd"
-      ansible.builtin.template:
-        src: config.toml.j2
-        dest: /etc/influxdb/config.toml
-      become: true
+      - name: mount NFS data directory if required
+        ansible.builtin.include_role:
+          name: nfs-client
 
-    - name: Restart service influxd, if running
-      ansible.builtin.systemd_service:
-        name: influxd
-        state: restarted
-      become: true
+      - name: "Create /etc/influxd/"
+        ansible.builtin.file:
+          path: /etc/influxdb
+          state: directory
+        become: true
+        notify:
+          - restart influxd
+
+      - name: "Template config for storage in /etc/influxd/config.toml"
+        ansible.builtin.template:
+          src: config.toml.j2
+          dest: /etc/influxdb/config.toml
+        become: true
+        notify:
+          - restart influxd
+
+
+      when: influx_force_configure
   
     when: service_running is false or influx_force_reload
 
