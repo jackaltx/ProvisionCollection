@@ -9,23 +9,24 @@
   ansible.builtin.apt:
     update_cache: true
     pkg:
-    - git
+      - git
   become: true
+  when: ansible_distribution == 'Debian'
 
 ##
 #  Download
 #
 
-- name: Download Godea Version 1.22.3
+- name: Download Gitea Version 1.22.3
   ansible.builtin.get_url:
     url: https://dl.gitea.com/gitea/1.22.3/gitea-1.22.3-linux-amd64
-    dest: /usr/local/bin/gitea1
+    dest: /usr/local/bin/gitea
     mode: '0755'
   become: true
 
 
 ##
-#  Create Gidea user
+#  Create Gitea user
 #
 
 - name: Ensure group "git" exists
