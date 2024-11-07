@@ -4,90 +4,110 @@
 # If the database was already setup up, then it will fail at the very first task.
 # Caller must catch.  
 #
-# This produces a file in the playbook directory of "/influx_auth/<ansible_name>.yml"
+# This produces a file in the playbook directory of "/influxdb_auth/<ansible_name>.yml"
 #
 #  This may be a bad design, but I dont see re-use.
 #
 
 
-- name: Generate a random influx password if set to 'generated'
-  ansible.builtin.set_fact:
-    influxdb_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=14, chars=['ascii_letters', 'digits'], seed=ansible_hostname) }}"
-  when: influxdb_password == "generated"
-
-
-- name: "create initial Influxdb user"
-  ansible.builtin.shell:
-    cmd: "/usr/bin/influx setup --org {{ influxdb_org }} --bucket {{ influxdb_bucket }} --username {{ influxdb_username }} --password {{ influxdb_password }} --force"
-  register: cmd_result
-  failed_when: cmd_result.rc != 0
+- name: "Is influxd already configured?"
+  ansible.builtin.shell: 
+    cmd: /usr/bin/influx config ls --json
+  register: influxdb_config
   become: true
-
-- ansible.builtin.debug:
-    var: cmd_result.stdout
-
-
-#................................................................................
-- name: "create initial admin token"
-  ansible.builtin.shell:
-    cmd: influx auth create --org lavnet --all-access --description admin --json
-  register: cmd_result
-  failed_when: cmd_result.rc != 0
-  become: true
-
-- set_fact:
-    influx_admin: "{{ cmd_result.stdout| from_json }}"
-
-- set_fact:
-    influx_auth_list: "{{ influx_auth_list | default([]) + [{
-        'id': influx_admin.id,
-        'token': influx_admin.token,
-        'description': influx_admin.description
-      }] }}"
-
-
-#................................................................................
-- name: "create initial operator token"
-  ansible.builtin.shell:
-    cmd: influx auth create --org lavnet --operator --description operator --json
-  register: cmd_result
-  failed_when: cmd_result.rc != 0
-  become: true
-
-- set_fact:
-    influx_operator: "{{ cmd_result.stdout| from_json }}"
-
-# This is used at the playbook level by telegraf, iff it is non-zero length.
-- set_fact:
-    influx_operators_token: "{{ influx_operator.token }}"
-
-- set_fact:
-    influx_auth_list: "{{ influx_auth_list | default([]) + [{
-        'id': influx_operator.id, 
-        'token': influx_operator.token,
-        'description': influx_operator.description
-      }] }}"
-
-#................................................................................
-- name: Create token file for this host
-  local_action: 
-      module: ansible.builtin.copy
-      content: "{{ influx_auth_list  | to_nice_yaml  }}"
-      dest: "{{ lookup('env', 'PWD') }}/data/influx-tokens-{{ ansible_hostname }}.yml"
-      owner: "{{ lookup('env', 'USER') }}"
-      mode: 0600
-
-- name: Create influx passed file for this host
-  local_action: 
-      module: ansible.builtin.copy
-      content: "\nUsername: {{ influxdb_username }}\n password: {{ influxdb_password }} \n"
-      dest: "{{ lookup('env', 'PWD') }}/data/influx-webui-access-{{ ansible_hostname }}.txt"
-      owner: "{{ lookup('env', 'USER') }}"
-      mode: 0600
 
 - debug:
-    var: influx_auth_list
+    var: influxdb_config.stdout
     verbosity: 1
+
+- ansible.builtin.set_fact:
+    influxdb_configured: "{{ influxdb_config.stdout != '{}' }}"
+
+- debug:
+    var: influxdb_configured
+    verbosity: 1
+
+#---------------------------------------------------------------------
+- block:
+
+  #...................................................................
+  - name: Generate a random influx password if set to 'generated'
+    ansible.builtin.set_fact:
+      influxdb_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=14, chars=['ascii_letters', 'digits'], seed=ansible_hostname) }}"
+    when: influxdb_password == "generated"
+
+  #...................................................................
+  - name: "create initial Influxdb user"
+    ansible.builtin.shell:
+      cmd: "/usr/bin/influx setup --org {{ influxdb_org }} --bucket {{ influxdb_bucket }} --username {{ influxdb_username }} --password {{ influxdb_password }} --force"
+    register: cmd_result
+    failed_when: cmd_result.rc != 0
+    become: true
+
+  #................................................................................
+  - name: "create initial admin token"
+    ansible.builtin.shell:
+      cmd: influx auth create --org lavnet --all-access --description admin --json
+    register: cmd_result
+    failed_when: cmd_result.rc != 0
+    become: true
+
+  - set_fact:
+      influxdb_admin: "{{ cmd_result.stdout| from_json }}"
+
+  - set_fact:
+      influxdb_auth_list: "{{ influxdb_auth_list | default([]) + [{
+          'id': influxdb_admin.id,
+          'token': influxdb_admin.token,
+          'description': influxdb_admin.description
+        }] }}"
+
+  #................................................................................
+  - name: "create initial operator token"
+    ansible.builtin.shell:
+      cmd: influx auth create --org lavnet --operator --description operator --json
+    register: cmd_result
+    failed_when: cmd_result.rc != 0
+    become: true
+
+  - set_fact:
+      influxdb_operator: "{{ cmd_result.stdout| from_json }}"
+
+  ####################################################################################
+  # This is used at the playbook level by telegraf, if it is non-zero length.
+  # SMELL: review this workflow
+  - set_fact:
+      influxdb_operators_token: "{{ influxdb_operator.token }}"
+
+  - set_fact:
+      influxdb_auth_list: "{{ influxdb_auth_list | default([]) + [{
+          'id': influxdb_operator.id, 
+          'token': influxdb_operator.token,
+          'description': influxdb_operator.description
+        }] }}"
+
+  #................................................................................
+  - name: Create a token file in the local data directory 
+    local_action: 
+        module: ansible.builtin.copy
+        content: "{{ influxdb_auth_list  | to_nice_yaml  }}"
+        dest: "{{ lookup('env', 'PWD') }}/data/influx-tokens-{{ ansible_hostname }}.yml"
+        owner: "{{ lookup('env', 'USER') }}"
+        mode: 0600
+
+  - name: Create influx password file in the local data directory
+    local_action: 
+        module: ansible.builtin.copy
+        content: "\nUsername: {{ influxdb_username }}\n password: {{ influxdb_password }} \n"
+        dest: "{{ lookup('env', 'PWD') }}/data/influx-webui-access-{{ ansible_hostname }}.txt"
+        owner: "{{ lookup('env', 'USER') }}"
+        mode: 0600
+
+  - debug:
+      var: influxdb_auth_list
+      verbosity: 1
+
+  when: not influxdb_configured
 
 #................................................................................
 #................................................................................

@@ -1,15 +1,19 @@
 ---
 - block:
 
-  ############# pre Debian 12 requirement
-  - name: "Prepare the apt keyring directory"
-    ansible.builtin.file:
-      path: /etc/apt/keyrings
-      state: directory
+  # - name: "Prepare the apt keyring directory"
+  #   ansible.builtin.file:
+  #     path: /etc/apt/keyrings
+  #     state: directory
 
-  - name: "Get the grafana gpg key used for Grafana, Loki, ..."
-    ansible.builtin.shell:
-      cmd: "wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor > /etc/apt/keyrings/grafana.gpg"
+  # - name: "Get the grafana gpg key used for Grafana, Loki, ..."
+  #   ansible.builtin.shell:
+  #     cmd: "wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor > /etc/apt/keyrings/grafana.gpg"
+
+  - name: Add an Apt signing key to a specific keyring file
+    ansible.builtin.apt_key:
+      url: https://apt.grafana.com/gpg.key
+      keyring: /etc/apt/trusted.gpg.d/grafana.gpg
 
   - name: "setup Grafana apt repo"
     ansible.builtin.copy:

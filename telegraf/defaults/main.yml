@@ -2,12 +2,12 @@
 # defaults file for telegraf
 
 telegraf_state: present
-influx_defaults: "etc-default-telegraf-local"
+influxdb_defaults: "etc-default-telegraf-local"
 
-influx_apache: false  
-influx_mariadb: false  
-influx_memcache: false  
-influx_redis: false  
+influxdb_apache: false  
+influxdb_mariadb: false  
+influxdb_memcache: false  
+influxdb_redis: false  
 
 telegraf_delete_config: false
 telegraf_delete_data: false
@@ -19,17 +19,17 @@ telegraf_delete_data: false
 
 
 # The first is a reference unit/service (not required)
-influx_output1: true
-influx_url1: "http://127.0.0.1"
-influx_operators_token1: ""
-influx_bucket1: "telegraf"
-influx_org1: "anOrg"
+influxdb_output1: true
+influxdb_url1: "http://127.0.0.1"
+influxdb_operators_token1: ""
+influxdb_bucket1: "telegraf"
+influxdb_org1: "anOrg"
 
 #  The seconds is the unit under test
-influx_output2: true
-influx_url2: "http://127.0.0.1"
-influx_operators_token2: ""
-influx_bucket2: "telegraf"
-influx_org2: "anOrg"
+influxdb_output2: true
+influxdb_url2: "http://127.0.0.1"
+influxdb_operators_token2: ""
+influxdb_bucket2: "telegraf"
+influxdb_org2: "anOrg"
 
-telgraf2influx_configs: {}
+telgraf2influxdb_configs: {}

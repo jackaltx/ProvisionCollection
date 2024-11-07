@@ -20,8 +20,8 @@ common:
   path_prefix: /tmp/loki
   storage:
     s3:
-      bucketnames: "{{ ansible_hostname }}"  # "{{ loki_s3_bucket }}"
-      endpoint: jacknas2.a0a0.org:8010
+      bucketnames: "{{ loki_s3_bucket }}"
+      endpoint: "{{ loki_endpoint }}"
       access_key_id: "{{ loki_key_id }}"
       secret_access_key: "{{ loki_access_key }}"
       insecure: true

@@ -1,7 +1,7 @@
 ---
 
 # - set_fact:
-#     influx_operators_token1: "{{ influx_operators_token | default }}"
+#     influxdb_operators_token1: "{{ influxdb_operators_token | default }}"
 
 #############################################################
 # All the secrets are passed in via an evironment file
@@ -16,6 +16,8 @@
     force: true
   register: config_status
   become: true
+  notify:
+    - restart telegraf
 
 - ansible.builtin.debug:
     var: config_status

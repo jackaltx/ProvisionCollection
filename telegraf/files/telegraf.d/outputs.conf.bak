@@ -1,16 +1,16 @@
 [[outputs.influxdb_v2]]
-  urls = ["${INFLUX_URL1}:8086"]
-  token = "${INFLUX_TOKEN1}"
-  organization = "{{ INFLUX_ORG1 }}"
-  bucket = "{{ INFLUX_BUCKET1 }}"
+  urls = ["${influxdb_URL1}:8086"]
+  token = "${influxdb_TOKEN1}"
+  organization = "{{ influxdb_ORG1 }}"
+  bucket = "{{ influxdb_BUCKET1 }}"
   insecure_skip_verify = true
 
 
 [[outputs.influxdb_v2]]
-  urls = ["${INFLUX_URL2}:8086"]
-  token = "${INFLUX_TOKEN2}"
-  organization = "{{ INFLUX_ORG2 }}"
-  bucket = "{{ INFLUX_BUCKET2 }}"
+  urls = ["${influxdb_URL2}:8086"]
+  token = "${influxdb_TOKEN2}"
+  organization = "{{ influxdb_ORG2 }}"
+  bucket = "{{ influxdb_BUCKET2 }}"
   namedrop = ["internal"]
   insecure_skip_verify = true
 

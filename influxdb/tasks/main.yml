@@ -38,9 +38,17 @@
 
     - block:
 
-      - name: mount NFS data directory if required
-        ansible.builtin.include_role:
-          name: nfs-client
+      - block:
+
+        - name: create the nfs mount directory
+          ansible.builtin.file:
+            path: "{{ influxdb_data_path }}"
+
+        - name: mount NFS data directory if required
+          ansible.builtin.include_role:
+            name: nfs-client
+
+        when: mount_nfs_share
 
       - name: "Create /etc/influxd/"
         ansible.builtin.file:
@@ -58,10 +66,9 @@
         notify:
           - restart influxd
 
-
-      when: influx_force_configure
+      when: influxdb_configure
   
-    when: service_running is false or influx_force_reload
+    when: service_running is false or influxdb_reload
 
   #......................................................................................
   # This captures the failure just in case it already exists!!!! 
@@ -70,11 +77,17 @@
   - name: Initialize the new influxdb instance (note, must be running)
     block:
 
-    - include_tasks: initializedb.yml
+      - name: ensure influxd is started
+        ansible.builtin.systemd_service:
+          name: influxd
+          state: started
+        become: true
+
+      - include_tasks: initializedb.yml
  
     rescue:
         - block:
-
+        
           - name: Maybe and exiting setup, so get auth list from a cmd, register output
             ansible.builtin.command: '/usr/bin/influx auth list --json'
             become: true
@@ -87,7 +100,7 @@
 
           - name:  This is used by telegraf.
             set_fact:
-              influx_operators_token: "{{ (full_list|selectattr('description', 'search', 'operator')|list|first).token }}"
+              influxdb_operators_token: "{{ (full_list|selectattr('description', 'search', 'operator')|list|first).token }}"
 
           rescue:
             - name: Print when errors
@@ -131,11 +144,16 @@
 
   #.........................
   - name: "Remove the data files in {{ influxdb_data_path }}"
-    ansible.builtin.file:
-      path: "{{ influxdb_data_path }}"
+    ansible.builtin.file :
+      path: "{{ influxdb_data_path }}/{{ item }}"
       state: absent
     become: true
     when: influxdb_delete_data
-    
+    loop:
+      - .cache
+      - engine
+      - influxd.bolt
+      - influxd.sqlite
+
 
   when: influxdb_state == 'absent'

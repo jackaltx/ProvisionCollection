@@ -20,8 +20,8 @@ By default this role installs. There are the state variable is 'present' or 'abs
 There are two varables used to communicate with the server.  Look at the inventory.yml for my configuration.
 
 ```
-telegraf_influx_url: "monitor.local"
-telegraf_influx_token: "its a secret==" 
+telegraf_influxdb_url: "monitor.local"
+telegraf_influxdb_token: "its a secret==" 
 telegraf_state: present
 ```
 

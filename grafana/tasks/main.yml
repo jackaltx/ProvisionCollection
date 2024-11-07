@@ -6,7 +6,7 @@
 
   - name: Package install
     ansible.builtin.include_tasks:
-      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-install.yml"
+      file: "../../shared/grafana/tasks/{{ ansible_os_family }}-install.yml"
     vars:
       package: grafana
 
@@ -20,6 +20,8 @@
       mode: 0640
     register: config_status
     become: true
+    notify:
+      - restart grafana
 
   - ansible.builtin.debug:
       var: config_status
@@ -30,14 +32,9 @@
       src: client_config.ini.j2
       dest: /etc/grafana/grafana.ini
     become: true
+    notify:
+      - restart grafana
 
-  - name: systemd reload configs and restart Grafana
-    ansible.builtin.systemd_service:
-      daemon_reload: true
-      name: grafana-server
-      state: restarted
-      enabled: true
-    become: true
 
   # - name: make the dashboards directory
   #   ansible.builtin.file:
@@ -45,11 +42,11 @@
   #     state: directory
   #   become: true
 
-  - name: copy in dashboards
-    ansible.builtin.copy:
-      src: provisioning
-      dest: "/etc/grafana"
-    become: true
+  # - name: copy in dashboards
+  #   ansible.builtin.copy:
+  #     src: provisioning
+  #     dest: "/etc/grafana"
+  #   become: true
 
 
   when: grafana_state == 'present'
@@ -60,7 +57,7 @@
 
   - name: Package remove
     ansible.builtin.include_tasks:
-      file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
+      file: "../../shared/any/tasks/{{ ansible_os_family }}-rm.yml"
     vars:
       package: grafana
       service_name: grafana-server.service

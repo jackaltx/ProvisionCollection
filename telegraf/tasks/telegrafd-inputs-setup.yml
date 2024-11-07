@@ -24,25 +24,25 @@
     ansible.builtin.copy:
       src: apache.conf
       dest: /etc/telegraf/telegraf.d/apache.conf
-    when: influx_apache
+    when: influxdb_apache
 
   - name: collect memcache stats
     ansible.builtin.copy:
       src: memcache.conf
       dest: /etc/telegraf/telegraf.d/memcache.conf
-    when: influx_memcache
+    when: influxdb_memcache
 
   - name: collect redis stats
     ansible.builtin.copy:
       src: redis.conf
       dest: /etc/telegraf/telegraf.d/redis.conf
-    when: influx_redis
+    when: influxdb_redis
 
   - name: collect mariadb stats
     ansible.builtin.copy:
       src: mariadb.conf
       dest: /etc/telegraf/telegraf.d/mariadb.conf
-    when: influx_mariadb
+    when: influxdb_mariadb
 
   become: true
 
