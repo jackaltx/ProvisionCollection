@@ -31,6 +31,6 @@
         recursive=True
       ) }}"
     loop: "{{ lookup('dict', telgraf2influxdb_configs) }}"
-    when: item.value.output and item.value.token|length == 0 and item.key == 'localhost'
+    when: item.value.token|length == 0 and item.key == 'localhost'
   
   when: influxdb_bin.stat.exists

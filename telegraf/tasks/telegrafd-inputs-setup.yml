@@ -44,5 +44,11 @@
       dest: /etc/telegraf/telegraf.d/mariadb.conf
     when: influxdb_mariadb
 
+  - name: collect influxdb stats
+    ansible.builtin.copy:
+      src: oss-metrics.conf
+      dest: /etc/telegraf/telegraf.d/oss-metrics.conf
+    when: influxdb_oss_metrics
+
   become: true
 

@@ -8,6 +8,7 @@ influxdb_apache: false
 influxdb_mariadb: false  
 influxdb_memcache: false  
 influxdb_redis: false  
+influxdb_oss_metrics: false
 
 telegraf_delete_config: false
 telegraf_delete_data: false

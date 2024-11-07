@@ -12,39 +12,25 @@
       service_name: loki.service
 
   #......................................................................................
-  # only install it not running...
-
-  - name: Install package and configure iff not running or forced
-    block:
-
-    - name: Package install
-      ansible.builtin.include_tasks:
-        file: "../../shared/grafana/tasks/{{ ansible_distribution }}-install.yml"
-      vars:
-        package: loki
-
-    ##################
-    # Configure
-
-    - name: Template config to  /etc/loki/config.yml
-      ansible.builtin.template:
-        src: config.yml.j2
-        dest: /etc/loki/config.yml
-      become: true
-
-    ##################
-    # Restart Service
-
-    - name: systemd reload configs and restart Loki
-      ansible.builtin.systemd_service:
-        daemon_reload: true
-        name: loki
-        state: restarted
-        enabled: true
-      become: true
-
+  # only install it not running or loki_force_reload
+  - name: Loki package install
+    ansible.builtin.include_tasks:
+      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-install.yml"
+    vars:
+      package: loki
     when: service_running is false or loki_force_reload
 
+  ##################
+  # Configure
+
+  - name: Template config to  /etc/loki/config.yml
+    ansible.builtin.template:
+      src: config.yml.j2
+      dest: /etc/loki/config.yml
+    become: true
+    notify:
+      - restart loki
+  
   when: loki_state == 'present'
 
   #....................................................................  

@@ -1,9 +1,0 @@
-[[inputs.internal]]
-
-[[outputs.influxdb_v2]]
-  urls = ["http://${influxdb_URL2}:8086"]
-  token = "${influxdb_TOKEN2}"
-  organization = "lavnet"
-  bucket = "telegraf"
-  namepass = ["internal"]
-
