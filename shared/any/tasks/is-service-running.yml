@@ -1,0 +1,28 @@
+---
+
+# I am expecting that service_name will be passed in and the fact service_running is available to the caller
+
+#.....................................................................................
+- name: Populate service facts
+  ansible.builtin.service_facts:
+
+# - debug:
+#     var: ansible_facts.services['loki.service']
+# - debug:
+#     var: ansible_facts.services['telegraf.service']
+# - debug:
+#     var: ansible_facts.services['alloy.service']
+# - debug:
+#     var: ansible_facts.services['influxd.service']
+    
+
+- name: "Check if service is running"
+  set_fact:
+    service_running: "{{ 
+      service_name in ansible_facts.services.keys() and (
+      ansible_facts.services[service_name].state == 'active' or
+      ansible_facts.services[service_name].state == 'running' )
+    }}"
+  vars:
+    service_name: "{{ service_name | default('') }}"
+  failed_when: service_name | length == 0

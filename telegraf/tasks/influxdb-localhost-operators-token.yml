@@ -1,0 +1,36 @@
+---
+
+- name: influx binary exist?
+  ansible.builtin.stat:
+    path: '/usr/bin/influx'
+  register: influxdb_bin
+
+- debug:
+    var: influxdb_bin.stat.exists
+
+- block:
+
+  - name: IFF influx is localhost, then we can do this
+    ansible.builtin.command: '/usr/bin/influx auth list --json'
+    become: true
+    register: cmd_result
+    failed_when: cmd_result.rc != 0
+
+  - name: converting json to list of dictionaries
+    set_fact:
+      full_list: "{{ cmd_result.stdout| from_json }}"
+
+  - name: build the telgraf2influxdb_configs fact dictionary
+    set_fact:
+      telgraf2influxdb_configs: "{{ telgraf2influxdb_configs | combine(
+        {
+          item.key: {
+            'token': (full_list|selectattr('description', 'search', 'operator')|list|first).token | default('')
+          }
+        },
+        recursive=True
+      ) }}"
+    loop: "{{ lookup('dict', telgraf2influxdb_configs) }}"
+    when: item.value.token|length == 0 and item.key == 'localhost'
+  
+  when: influxdb_bin.stat.exists

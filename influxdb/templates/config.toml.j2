@@ -1,5 +1,8 @@
 bolt-path = "{{ influxdb_data_path }}/influxd.bolt"
 engine-path = "{{ influxdb_data_path }}/engine"
 log-level= "{{ influxdb_level }}"
-tls-cert = "{{ influxdb_cert }}"
-tls-key = "{{ influxdb_key }}"
+reporting-disabled = true
+
+# turn on the certificates by uncommenting...sux  SMELL 
+#tls-cert = "{{ influxdb_cert }}"
+#tls-key = "{{ influxdb_key }}"

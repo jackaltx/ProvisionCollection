@@ -2,146 +2,158 @@
 # tasks file for influxdb
 
 #=============================================================================================================
+# Install block
+#
 - block:
 
-  - name: Package install
+  - name: Is influxd runnin?
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-install.yml"
+      file: "../../shared/any/tasks/is-service-running.yml"
+    vars:
+      service_name: influxd.service
 
-  ##################
-  # Configure
+  #......................................................................................
+  # only install it not running...
 
-  - name: "Prepare /etc/influxd"
-    ansible.builtin.file:
-      path: /etc/influxdb
-      state: directory
-    become: true
-
-  - name: "Template config for storage in /etc/influxd"
-    ansible.builtin.template:
-      src: config.toml.j2
-      dest: /etc/influxdb/config.toml
-    become: true
-
-  - name: Restart service influxd, if running
-    ansible.builtin.systemd_service:
-      name: influxd
-      state: restarted
-    become: true
-
-  #.........................
-  - name: Initialize a new influxdb instance
+  - name: Install package and configure iff not running or forced
     block:
 
-    - name: "create initial db user"
-      ansible.builtin.shell:
-        cmd: "/usr/bin/influx setup --org {{ influxdb_org }} --bucket {{ influxdb_bucket }} --username {{ influxdb_username }} --password {{ influxdb_password }} --force"
-      register: cmd_result
-      failed_when: cmd_result.rc != 0
-      become: true
+    #################
+    # Install Package
 
-    - ansible.builtin.debug:
-        var: cmd_result.stdout
-
-    - name: "create initial admin token"
-      ansible.builtin.shell:
-        cmd: influx auth create --org lavnet --all-access --description admin --json
-      register: cmd_result
-      failed_when: cmd_result.rc != 0
-      become: true
-    - ansible.builtin.debug:
-        var: cmd_result.stdout
-        verbosity: 1
-    - set_fact:
-        influx_admin: "{{ cmd_result.stdout| from_json }}"
-    - debug:
-        var: influx_admin.id
-    - debug:
-        var: influx_admin.token
-    - debug:
-        var: influx_admin.description
+    - name: Package install
+      ansible.builtin.include_tasks:
+        file: "../../shared/influxdb/tasks/{{ ansible_distribution }}-install.yml"
+      vars:
+        package: influxdb2
 
 
-    - name: "create initial operator token"
-      ansible.builtin.shell:
-        cmd: influx auth create --org lavnet --operator --description operator --json
-      register: cmd_result
-      failed_when: cmd_result.rc != 0
-      become: true
-    - ansible.builtin.debug:
-        var: cmd_result.stdout
-        verbosity: 1
-    - set_fact:
-        influx_operator: "{{ cmd_result.stdout| from_json }}"
-    - debug:
-        var: influx_operator.id
-    - debug:
-        var: influx_operator.token
-    - debug:
-        var: influx_operator.description
+    ##################
+    # Configure
 
+    # - name: Check if configuration file exists
+    #   stat:
+    #     path: "{{ SEARCH_PATH }}/{{ SEARCH_FILE }}"
+    #   register: result
 
+    - block:
 
-    # - name: "import dashboard template"
-    #   ansible.builtin.shell:
-    #     cmd: influx apply -u https://raw.githubusercontent.com/influxdata/community-templates/master/linux_system/linux_system.yml
-    #   register: cmd_result
-    #   become: true
+      - block:
 
-    # - ansible.builtin.debug:
-    #     var: cmd_result
+        - name: create the nfs mount directory
+          ansible.builtin.file:
+            path: "{{ influxdb_data_path }}"
 
+        - name: mount NFS data directory if required
+          ansible.builtin.include_role:
+            name: nfs-client
+
+        when: mount_nfs_share
+
+      - name: "Create /etc/influxd/"
+        ansible.builtin.file:
+          path: /etc/influxdb
+          state: directory
+        become: true
+        notify:
+          - restart influxd
+
+      - name: "Template config for storage in /etc/influxd/config.toml"
+        ansible.builtin.template:
+          src: config.toml.j2
+          dest: /etc/influxdb/config.toml
+        become: true
+        notify:
+          - restart influxd
+
+      when: influxdb_configure
+  
+    when: service_running is false or influxdb_reload
+
+  #......................................................................................
+  # This captures the failure just in case it already exists!!!! 
+  #
+
+  - name: Initialize the new influxdb instance (note, must be running)
+    block:
+
+      - name: ensure influxd is started
+        ansible.builtin.systemd_service:
+          name: influxd
+          state: started
+        become: true
+
+      - include_tasks: initializedb.yml
+ 
     rescue:
-      - name: Print when errors
-        ansible.builtin.debug:
-          msg: "Cannot be setup via ansible.\n The script cannot access SSL and/or it was already setup once!!!"
+        - block:
+        
+          - name: Maybe and exiting setup, so get auth list from a cmd, register output
+            ansible.builtin.command: '/usr/bin/influx auth list --json'
+            become: true
+            register: cmd_result
+            failed_when: cmd_result.rc != 0
+
+          - name: converting json to list of dictionaries
+            set_fact:
+              full_list: "{{ cmd_result.stdout| from_json }}"
+
+          - name:  This is used by telegraf.
+            set_fact:
+              influxdb_operators_token: "{{ (full_list|selectattr('description', 'search', 'operator')|list|first).token }}"
+
+          rescue:
+            - name: Print when errors
+              ansible.builtin.debug:
+                msg: "Telegraf cannot be setup via ansible.\n The script cannot access SSL and/or some other wierd setup."
    
   when: influxdb_state == 'present'
 
 
 #=============================================================================================================
+#  Remove Block
+#
 - block:
-
-  - name: Stop service influxd, if running
-    ansible.builtin.systemd_service:
-      name: influxd
-      state: stopped
-    become: true
 
   - name: Package remove
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-rm.yml"
+      file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
+    vars:
+      package: influxdb2
+      service_name: influxd.service
 
   #.........................
   - block:
 
-    - name: "Remove the default file"
+    - name: "Remove InfluxDB configuration files"
       ansible.builtin.file:
-        path: /etc/default/influxdb2
+        path: "{{ item }}"
         state: absent
       become: true
-
-    - name: "Remove the config files"
-      ansible.builtin.file:
-        path: /etc/influxdb
-        state: absent
-      become: true
-
-    - name: "Remove the root config files"
-      ansible.builtin.file:
-        path: /root/.influxdbv2
-        state: absent
-      become: true
-
+      loop:
+        - /etc/default/influxdb2
+        - /etc/influxdb
+        - /root/.influxdbv2
+      register: file_cleanup
+      ignore_errors: "{{ ansible_check_mode }}"
+      failed_when: 
+        - file_cleanup.failed is defined
+        - file_cleanup.failed and not ansible_check_mode
+        
     when: influxdb_delete_config
 
   #.........................
   - name: "Remove the data files in {{ influxdb_data_path }}"
-    ansible.builtin.file:
-      path: "{{ influxdb_data_path }}"
+    ansible.builtin.file :
+      path: "{{ influxdb_data_path }}/{{ item }}"
       state: absent
     become: true
     when: influxdb_delete_data
-    
+    loop:
+      - .cache
+      - engine
+      - influxd.bolt
+      - influxd.sqlite
+
 
   when: influxdb_state == 'absent'

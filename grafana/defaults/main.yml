@@ -3,3 +3,39 @@
 
 grafana_state: 'present'
 grafana_https: true
+
+
+# https://github.com/zerodowntime/ansible-role-grafana/blob/master/defaults/main.yml
+
+grafana__instance: "{{ ansible_host | default(inventory_hostname) }}"
+grafana__logs_dir: "/var/log/grafana"
+grafana__data_dir: "/var/lib/grafana"
+grafana__dir_dashboards: "{{ grafana__data_dir }}/dashboards"
+grafana__endpoint: "monitor2.{{ domain }}"
+grafana__bind: 0.0.0.0
+grafana__port: 3000
+grafana__url: "http://{{ grafana__endpoint }}:{{ grafana__port }}"
+grafana__domain: "{{ ansible_host | default('localhost') }}"
+
+grafana__server:
+  protocol: http
+  enforce_domain: false
+  socket: ""
+  cert_key: ""
+  cert_file: ""
+  enable_gzip: false
+  static_root_path: public
+  router_logging: false
+
+grafana__security:
+  admin_user: admin
+  admin_password: admin
+
+grafana__database:
+  type: sqlite3
+
+grafana__auth:
+  basic: true
+
+grafana__dashboards: []
+grafana__datasources: []

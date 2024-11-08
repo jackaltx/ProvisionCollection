@@ -6,65 +6,84 @@
 
   - name: Package install
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-install.yml"
+      file: "../../shared/influxdb/tasks/{{ ansible_os_family }}-install.yml"
+    vars:
+      package: telegraf
 
-  - name: Configure the plugins
+  ##################
+  # Configure
+
+  - name: sometimes /etc/telegraf.conf does not get created???
+    ansible.builtin.copy:
+      src: telegraf.conf
+      dest: /etc/telegraf/telegraf.conf
+    become: true
+    notify: 
+      - restart telegraf
+
+  - name: Configure the inputs to collect
     ansible.builtin.include_tasks:
-      file: telegrafd-setup.yml
+      file: telegrafd-inputs-setup.yml
 
-  # All the secrets are passed in via an evironment file
-  - name: copy config to /etc/default/telegraf
-    ansible.builtin.copy:
-      src: "{{ influx_defaults }}"
-      dest: /etc/default/telegraf
-      group: telegraf
-      mode: 0640
-      decrypt: true
-      force: true
-    register: config_status
-    become: true
+  - name: configure outputs to influxdb
+    ansible.builtin.include_tasks:
+      file: telegrafd-outputs-setup.yml
 
-  - ansible.builtin.debug:
-      var: config_status
-      verbosity: 1
+  - name: edge case, when the URL is localhost and it empty, then set it up
+    ansible.builtin.include_tasks:
+      file: influxdb-localhost-operators-token.yml
 
-
-  # SMELL: Used for an HTTPS influxdb.  This might should be elsewhere.
-  - name: copy lets encrypt ca  to  /etc/ssl/certs/
-    ansible.builtin.copy:
-      src: lets_encrypt_ca.cer 
-      dest: /etc/ssl/certs/lets_encrypt_ca.cer
-      mode: 0644
-    become: true
-
-
-  - name: systemd reload configs and restart telegraf
-    ansible.builtin.systemd_service:
-      daemon_reload: true
-      name: telegraf
-      state: restarted
-      enabled: true
-    become: true
-
-
+  - name: Configure /etc/default/telegraf file
+    ansible.builtin.include_tasks:
+      file: telegrafd-default-setup.yml
+ 
   when: telegraf_state == 'present'
 
+
+######################################################################################
+# Remove Telegraf Service
+#
 - block:
 
+  #.......................................................................
   - name: Package remove
     ansible.builtin.include_tasks:
-      file: "{{ ansible_distribution }}-rm.yml"
+      file: "../../shared/any/tasks/{{ ansible_os_family }}-rm.yml"
+    vars:
+      package: 'telegraf'
+      service_name: 'telegraf.service'
 
-  - name: "Remove the config file"
+  # .......................................................................
+  - block:
+
+    - name: "Remove Telegraf configuration files"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      become: true
+      loop:
+        - /etc/default/telegraf
+        - /etc/telegraf
+      register: file_cleanup
+      ignore_errors: "{{ ansible_check_mode }}"
+      failed_when: 
+        - file_cleanup.failed is defined
+        - file_cleanup.failed and not ansible_check_mode
+      when: telegraf_delete_config
+
+  - name: "Remove the Telegraf data files"
     ansible.builtin.file:
-      path: /etc/telegraf/telegraf.d
+      path: /var/lib/telegraf
       state: absent
     become: true
+    register: file_cleanup
+    ignore_errors: "{{ ansible_check_mode }}"
+    failed_when: 
+      - file_cleanup.failed is defined
+      - file_cleanup.failed and not ansible_check_mode
+    when: telegraf_delete_data
 
-  - name: "Remove the default file"
-    ansible.builtin.file:
-      path: /etc/default/telegraf
-      state: absent
-    become: true
+  - debug:
+      var: telegraf_delete_data
 
   when: telegraf_state == 'absent'

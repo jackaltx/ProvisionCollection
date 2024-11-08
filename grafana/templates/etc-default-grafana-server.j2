@@ -1,0 +1,30 @@
+# Generated file 
+#
+#  starting with defaults
+#
+
+
+GRAFANA_USER="{{ grafana__system_user }}"
+GRAFANA_GROUP="{{ grafana__system_group }}"
+GRAFANA_HOME=/usr/share/grafana
+
+MAX_OPEN_FILES=10000
+
+LOG_DIR={{ grafana__logs_dir }}
+DATA_DIR="{{ grafana__data_dir }}"
+PLUGINS_DIR=/var/lib/grafana/plugins
+
+CONF_DIR=/etc/grafana
+CONF_FILE=/etc/grafana/grafana.ini
+
+PROVISIONING_CFG_DIR=/etc/grafana/provisioning
+
+RESTART_ON_UPGRADE=true
+
+#..............
+#
+#
+
+#...............
+# Only used on systemd systems
+PID_FILE_DIR=/run/grafana
