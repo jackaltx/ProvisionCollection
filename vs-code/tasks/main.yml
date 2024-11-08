@@ -1,0 +1,18 @@
+---
+# tasks file for vs-code
+
+- name: Import the vs-code key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://packages.microsoft.com/keys/microsoft.asc
+
+- name: Setup repo file
+  ansible.builtin.copy:
+    src: vscode.repo
+    dest: /etc/yum.repos.d/vscode.repo
+
+- name: Install the latest version of VS Code
+  ansible.builtin.dnf:
+    name: code
+    state: latest
+    update_cache: true
