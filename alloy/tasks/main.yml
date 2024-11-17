@@ -2,7 +2,9 @@
 # tasks file for alloy
 
   #.......................................  
-- block:
+- name: Install Allow service to feed measurements to a Loki service
+  when: alloy_state == 'present'
+  block:
 
   - name: Package install
     ansible.builtin.include_tasks:
@@ -10,18 +12,10 @@
     vars:
       package: alloy
 
-  ##################
-  # Configure
-
-  # - name: Template config to  /etc/alloy/config.alloy
-  #   ansible.builtin.copy:
-  #     src: "{{ item}}"
-  #     dest: /etc/alloy/
-  #   with_fileglob:
-  #     - "*.alloy"
-  #   become: true
-
-  - name: "Template config  in /etc/alloy/config.allow "
+  #...............................................
+  # Alloy take one and only one configuration file
+  #
+  - name: "Template config  in /etc/alloy/config.alloy "
     ansible.builtin.template:
       src: client-config-alloy.j2
       dest: /etc/alloy/config.alloy
@@ -29,6 +23,9 @@
     notify:
       - restart alloy
 
+  #.....................................................................
+  # Alloy used the /etc/default directory to keep environment variables
+  #
   - name: "Template config  in /etc/default/alloy"
     ansible.builtin.template:
       src: etc-default-alloy.j2
@@ -37,15 +34,20 @@
     notify:
       - restart alloy
 
-  when: alloy_state == 'present'
+
 
   #.......................................  
-- block:
+- name: Remove Alloy Service and all associated data (if-requested)
+  when: alloy_state == 'absent'
+  block:
 
-  - block:
+
+  - name: remove the configuration files
+    when: alloy_delete_config
+    block:
 
     # NOTE:  you have to remove all the config files before the package
-    # THey have a script that tracks them and messes up the remove.
+    # deb have a script that tracks them and messes up the remove.
 
     - name: "Remove Grafana-Alloy configuration files"
       ansible.builtin.file:
@@ -60,9 +62,6 @@
       failed_when: 
         - file_cleanup.failed is defined
         - file_cleanup.failed and not ansible_check_mode
-
-
-    when: alloy_delete_config
 
   - name: Package remove
     ansible.builtin.include_tasks:
@@ -83,4 +82,4 @@
     become: true
     when: alloy_delete_data
 
-  when: alloy_state == 'absent'
+

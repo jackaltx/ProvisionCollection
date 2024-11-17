@@ -11,26 +11,41 @@
 - block:
 
   - name: IFF influx is localhost, then we can do this
+    no_log: "{{ mylab_nolog | default(true) }}"
     ansible.builtin.command: '/usr/bin/influx auth list --json'
     become: true
     register: cmd_result
     failed_when: cmd_result.rc != 0
 
-  - name: converting json to list of dictionaries
-    set_fact:
-      full_list: "{{ cmd_result.stdout| from_json }}"
+  # - name: converting json to list of dictionaries
+  #   no_log: "{{ mylab_nolog | default(true) }}"
+  #   ansible.builtin.set_fact:
+  #     full_list: "{{ cmd_result.stdout| from_json }}"
 
-  - name: build the telgraf2influxdb_configs fact dictionary
-    set_fact:
-      telgraf2influxdb_configs: "{{ telgraf2influxdb_configs | combine(
-        {
-          item.key: {
-            'token': (full_list|selectattr('description', 'search', 'operator')|list|first).token | default('')
-          }
-        },
-        recursive=True
-      ) }}"
-    loop: "{{ lookup('dict', telgraf2influxdb_configs) }}"
-    when: item.value.token|length == 0 and item.key == 'localhost'
-  
+  # - name: build the telgraf2influxdb_configs fact dictionary
+  #   no_log: "{{ mylab_nolog | default(true) }}"
+  #   ansible.builtin.set_fact:
+  #     telgraf2influxdb_configs: "{{ telgraf2influxdb_configs | combine(
+  #       {
+  #         item.key: {
+  #           'token': (full_list|selectattr('description', 'search', 'operator')|list|first).token | default('')
+  #         }
+  #       },
+  #       recursive=True
+  #     ) }}"
+  #   loop: "{{ lookup('dict', telgraf2influxdb_configs) }}"
+  #   when: item.value.token|length == 0 and item.key == 'localhost'
+
+  - name: Update influxdb configs with operator token
+    ansible.builtin.set_fact:
+      telgraf2influxdb_configs: "{{ telgraf2influxdb_configs | combine({
+        'localhost': {
+          'token': (cmd_result.stdout | from_json | selectattr('description', 'eq', 'operator') | first).token
+        }
+      }, recursive=True) }}"
+    no_log: "{{ mylab_nolog | default(true) }}"
+    when: telgraf2influxdb_configs.localhost.token | default('') | length == 0
+
+
+
   when: influxdb_bin.stat.exists

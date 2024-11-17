@@ -2,91 +2,111 @@
 ###############################################################################
 # Initialize a new influxdb instance
 # If the database was already setup up, then it will fail at the very first task.
-# Caller must catch.  
+# will then  
 #
-# This produces a file in the playbook directory of "/influxdb_auth/<ansible_name>.yml"
+# This produces a file in the playbook data sub-directory of 
 #
-#  This may be a bad design, but I dont see re-use.
+# This may be a bad design, but I dont see re-use.
 #
 
 
+#---------------------------------------------------------------------
 - name: "Is influxd already configured?"
+  become: true
+  no_log: "{{ mylab_nolog | default(true) }}"
   ansible.builtin.shell: 
     cmd: /usr/bin/influx config ls --json
   register: influxdb_config
-  become: true
 
-- debug:
-    var: influxdb_config.stdout
-    verbosity: 1
-
-- ansible.builtin.set_fact:
+- name:  Set the influxdb_configured fact
+  ansible.builtin.set_fact:
     influxdb_configured: "{{ influxdb_config.stdout != '{}' }}"
 
-- debug:
-    var: influxdb_configured
-    verbosity: 1
+
 
 #---------------------------------------------------------------------
-- block:
+- name: initialization block when influxdb is not configured
+  when: not influxdb_configured
+  block:
 
   #...................................................................
-  - name: Generate a random influx password if set to 'generated'
+  - name: generate a random influx password if set to 'generated'
+    no_log: "{{ mylab_nolog | default(true) }}"
     ansible.builtin.set_fact:
       influxdb_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=14, chars=['ascii_letters', 'digits'], seed=ansible_hostname) }}"
     when: influxdb_password == "generated"
 
   #...................................................................
-  - name: "create initial Influxdb user"
+  # will fail if was already created
+  - name: "create initial influxdb user"
+    no_log: "{{ mylab_nolog | default(true) }}"
+    become: true
     ansible.builtin.shell:
-      cmd: "/usr/bin/influx setup --org {{ influxdb_org }} --bucket {{ influxdb_bucket }} --username {{ influxdb_username }} --password {{ influxdb_password }} --force"
+     cmd: "/usr/bin/influx setup --org {{ influxdb_org }} --bucket {{ influxdb_bucket }} --username {{ influxdb_username }} --password {{ influxdb_password }} --force"
     register: cmd_result
     failed_when: cmd_result.rc != 0
-    become: true
-
+ 
   #................................................................................
   - name: "create initial admin token"
+    no_log: "{{ mylab_nolog | default(true) }}"
+    become: true
     ansible.builtin.shell:
       cmd: influx auth create --org lavnet --all-access --description admin --json
     register: cmd_result
     failed_when: cmd_result.rc != 0
-    become: true
-
-  - set_fact:
-      influxdb_admin: "{{ cmd_result.stdout| from_json }}"
-
-  - set_fact:
-      influxdb_auth_list: "{{ influxdb_auth_list | default([]) + [{
-          'id': influxdb_admin.id,
-          'token': influxdb_admin.token,
-          'description': influxdb_admin.description
-        }] }}"
 
   #................................................................................
   - name: "create initial operator token"
+    no_log: "{{ mylab_nolog | default(true) }}"
     ansible.builtin.shell:
       cmd: influx auth create --org lavnet --operator --description operator --json
     register: cmd_result
     failed_when: cmd_result.rc != 0
     become: true
 
-  - set_fact:
-      influxdb_operator: "{{ cmd_result.stdout| from_json }}"
-
-  ####################################################################################
-  # This is used at the playbook level by telegraf, if it is non-zero length.
-  # SMELL: review this workflow
-  - set_fact:
-      influxdb_operators_token: "{{ influxdb_operator.token }}"
-
-  - set_fact:
-      influxdb_auth_list: "{{ influxdb_auth_list | default([]) + [{
-          'id': influxdb_operator.id, 
-          'token': influxdb_operator.token,
-          'description': influxdb_operator.description
-        }] }}"
-
   #................................................................................
+  - name: "create oss_metrics bucket for influxdb monitoring"
+    become: true
+    ansible.builtin.shell:
+      cmd: influx bucket create -n oss_metrics
+    register: cmd_result
+    failed_when: cmd_result.rc != 0
+
+ 
+  ########################################################################################
+  # failed to configure the influxdb database, might be already configure.
+  # If so, then get the operator token so the localhost telegraf can be configured.
+  # This is not only used for congur
+
+  rescue:
+    - name: "Failed to configure!"
+      ansible.builtin.debug:
+        var: cmd_result
+      when: cmd_result is defined
+           
+  ########################################################################################
+  #  use the influxdb auth list
+
+- name: Use the auth list to setup local telegraf and print current setup
+  block:
+
+  - name: get auth list from influxdb
+    no_log: "{{ mylab_nolog | default(true) }}"
+    ansible.builtin.command: '/usr/bin/influx auth list --json'
+    become: true
+    register: cmd_result
+    failed_when: cmd_result.rc != 0
+
+  - name: Create simplified auth dictionary
+    no_log: "{{ mylab_nolog | default(true) }}"
+    set_fact:
+      influxdb_auth_list: "{{ cmd_result.stdout | from_json | json_query('[].{id: id, description: description, token: token}') }}"
+
+  - name: Find operator token from auth list
+    no_log: "{{ mylab_nolog | default(true) }}"
+    set_fact:
+      influxdb_operators_token: "{{ influxdb_auth_list | json_query('[?description==`operator`].token') | first }}"
+
   - name: Create a token file in the local data directory 
     local_action: 
         module: ansible.builtin.copy
@@ -103,12 +123,9 @@
         owner: "{{ lookup('env', 'USER') }}"
         mode: 0600
 
-  - debug:
-      var: influxdb_auth_list
-      verbosity: 1
+  rescue:
+    - name: failed to get the auth list!!!
+      ansible.builtin.debug:
+        msg: "Telegraf cannot be setup via ansible.\n The script cannot access SSL and/or some other weird setup."
 
-  when: not influxdb_configured
-
-#................................................................................
-#................................................................................
-#................................................................................
+    - ansible.builtin.meta: end_play

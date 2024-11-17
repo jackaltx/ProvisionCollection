@@ -4,6 +4,7 @@
 
 #.....................................................................................
 - name: Populate service facts
+  no_log: "{{ mylab_nolog | default(true) }}"
   ansible.builtin.service_facts:
 
 # - debug:

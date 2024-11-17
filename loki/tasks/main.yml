@@ -3,7 +3,9 @@
 #
 
   #.......................................  
-- block:
+- name: Install Loki Package
+  when: loki_state == 'present'
+  block:
 
   - name: Is loki running?
     ansible.builtin.include_tasks:
@@ -31,10 +33,12 @@
     notify:
       - restart loki
   
-  when: loki_state == 'present'
+
 
   #....................................................................  
-- block:
+- name: Remove Loki Serivce
+  when: loki_state == 'absent'
+  block:
 
   - name: Package remove
     ansible.builtin.include_tasks:
@@ -43,14 +47,12 @@
       package: loki
       service_name: loki.service
 
-
   - name: "Remove the config files /etc/loki"
     ansible.builtin.file:
       path: /etc/loki
       state: absent
     become: true
     when: loki_delete_config
-
 
   - name: "Remove the date files /var/lib/loki/"
     ansible.builtin.file:
@@ -60,4 +62,3 @@
     when: loki_delete_data
 
 
-  when: loki_state == 'absent'

@@ -2,7 +2,9 @@
 # tasks file for grafana
 
   #.......................................  
-- block:
+- name: Install Grafana-Server
+  when: grafana_state == 'present'
+  block:
 
   - name: Package install
     ansible.builtin.include_tasks:
@@ -49,11 +51,10 @@
   #   become: true
 
 
-  when: grafana_state == 'present'
-
-
   #.......................................  
-- block:
+- name: Remove Grafana-Server and configuration files.
+  block:
+  when: grafana_state == 'absent'
 
   - name: Package remove
     ansible.builtin.include_tasks:
@@ -73,5 +74,3 @@
       path: /etc/default/grafana-server
       state: absent
     become: true
-
-  when: grafana_state == 'absent'
