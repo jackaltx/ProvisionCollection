@@ -8,7 +8,7 @@
 
   - name: Package install
     ansible.builtin.include_tasks:
-      file: "../../shared/grafana/tasks/{{ ansible_distribution }}-install.yml"
+      file: "../../shared/grafana/tasks/{{ ansible_os_family }}-install.yml"
     vars:
       package: alloy
 
@@ -18,7 +18,7 @@
   - name: "Template config  in /etc/alloy/config.alloy "
     ansible.builtin.template:
       src: client-config-alloy.j2
-      dest: /etc/alloy/config.alloy
+      dest: "{{ alloy_config}}"
     become: true
     notify:
       - restart alloy
