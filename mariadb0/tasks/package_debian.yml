@@ -1,7 +1,0 @@
----
-- name: Manage MariaDB packages for Debian
-  apt:
-    name: "{{ mariadb_packages }}"
-    state: "{{ mariadb_state }}"
-    update_cache: yes
-    purge: "{{ mariadb_state == 'absent' }}"

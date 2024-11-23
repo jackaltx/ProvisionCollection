@@ -1,66 +1,68 @@
 ---
-- name: Handle Mailsvc Installation
-  block:
-  
-    - name: Include OS-specific package tasks
-      include_tasks: "packages_{{ ansible_distribution|lower }}.yml"
-      vars:
-        packages: "{{ mailsvc_packages }}"
-        state: "{{ mailsvc_state }}"
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_distribution|lower }}.yml"
 
-    - name: Start and enable MariaDB
-      service:
-        name: mariadb
-        state: started
-        enabled: yes
-      when: mailsvc_state == "present"
-
-    - name: Wait for MariaDB to be ready
-      wait_for:
-        port: 3306
-        timeout: 30
-      when: mailsvc_state == "present"
-
-    - name: Include database setup tasks
-      include_tasks: setup_databases.yml
-      when: mailsvc_state == "present"
-
+- name: Generate random passwords
   when: mailsvc_state == "present"
-  tags: [mailsvc]
-
-- name: Handle Mailsvc Removal
   block:
-    - name: Stop services
-      service:
-        name: "{{ item }}"
-        state: stopped
-        enabled: false
-      loop:
-        - mariadb
-        - postfix
-        - dovecot
-      ignore_errors: yes
+    - name: Generate postfixadmin password
+      set_fact:
+        postfixadmin_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits,punctuation') }}"
 
-    - name: Wait for MariaDB to stop
-      wait_for:
-        path: /var/run/mysqld/mysqld.pid
-        state: absent
-        timeout: 30
+    - name: Generate cubemail password
+      set_fact:
+        cubemail_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits,punctuation') }}"
 
-    - name: Include OS-specific package removal
-      include_tasks: "packages_{{ ansible_distribution|lower }}.yml"
-      vars:
-        packages: "{{ mailsvc_packages }}"
-        state: absent
+    - name: Save passwords to remote file
+      copy:
+        dest: "{{ password_file }}"
+        content: |
+          PostfixAdmin Password: {{ postfixadmin_password }}
+          Cubemail Password: {{ cubemail_password }}
+          MySQL Root Password: {{ mysql_password }}
+        mode: '0600'
 
-    - name: Remove data directories
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /var/lib/mysql
-        - /var/lib/postfix
-        - /var/lib/dovecot
-      when: mailsvc_remove_data | bool
-  when: mailsvc_state == "absent"
-  tags: [mailsvc]
+    - name: Fetch password file locally
+      fetch:
+        src: "{{ password_file }}"
+        dest: "{{ local_password_file }}"
+        flat: yes
+
+- name: Include OS-specific package tasks
+  include_tasks: "packages_{{ ansible_distribution|lower }}.yml"
+
+- name: Include database management tasks
+  include_tasks: database.yml
+
+- name: Include configuration tasks
+  include_tasks: config.yml
+
+- name: Ensure services are started and enabled
+  when: mailsvc_state == "present"
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - postfix
+    - dovecot
+    - "{{ php_service }}"
+    - rspamd
+
+- name: Remove configuration directories
+  when: 
+    - mailsvc_state == "absent"
+    - mailsvc_remove_config | bool
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ config_paths }}"
+
+- name: Remove data directories
+  when:
+    - mailsvc_state == "absent"
+    - mailsvc_remove_data | bool
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ data_paths }}"

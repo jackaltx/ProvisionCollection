@@ -1,0 +1,100 @@
+<?php
+
+$config = array();
+
+// Database connection string (DSN) for read+write operations
+$config['db_dsnw'] = sprintf('mysql://%s:%s@%s:%d/%s',
+    '{{ cubemail_db.user }}',
+    '{{ cubemail_password }}',
+    '{{ cubemail_db.host }}',
+    {{ cubemail_db.port }},
+    '{{ cubemail_db.name }}'
+);
+
+// System error reporting
+$config['debug_level'] = 0;
+$config['log_driver'] = 'syslog';
+
+// Encryption key (24 chars)
+$config['des_key'] = '{{ cubemail_des_key }}';
+
+// Server software
+$config['imap_host'] = 'localhost:143';
+$config['smtp_host'] = 'localhost:587';
+
+// SMTP authentication
+$config['smtp_user'] = '%u';
+$config['smtp_pass'] = '%p';
+
+// IMAP authentication
+$config['imap_auth_type'] = 'LOGIN';
+$config['imap_delimiter'] = '/';
+
+// Use secure IMAP/SMTP connections
+$config['default_host'] = 'tls://localhost';
+$config['default_port'] = 143;
+$config['smtp_server'] = 'tls://localhost';
+$config['smtp_port'] = 587;
+
+// Interface settings
+$config['skin'] = 'elastic';
+$config['language'] = 'en_US';
+$config['timezone'] = '{{ ansible_date_time.tz }}';
+
+// Security and identity
+$config['support_url'] = '';
+$config['product_name'] = 'Cubemail';
+$config['useragent'] = 'Cubemail/{{ cubemail_version|default("1.0") }}';
+
+// Session and cookie settings
+$config['session_lifetime'] = 60;
+$config['session_domain'] = '';
+$config['session_name'] = 'cubemail_session';
+$config['session_auth_name'] = 'cubemail_auth';
+$config['session_path'] = '/';
+$config['cookie_secure'] = true;
+$config['cookie_samesite'] = 'Strict';
+
+// Login security
+$config['login_rate_limit'] = array(
+    'min_time' => '60s',
+    'max_attempts' => 3
+);
+
+// Address book
+$config['address_book_type'] = 'sql';
+$config['ldap_public'] = array();
+
+// Mail settings
+$config['create_default_folders'] = true;
+$config['protect_default_folders'] = true;
+$config['mail_pagesize'] = '50';
+$config['draft_autosave'] = 60;
+$config['mime_param_folding'] = 1;
+$config['skip_deleted'] = true;
+
+// Attachment settings
+$config['max_message_size'] = '25M';
+$config['upload_max_filesize'] = '25M';
+$config['client_mimetypes'] = null;
+
+// Security features
+$config['force_https'] = true;
+$config['use_secure_urls'] = true;
+$config['login_autocomplete'] = 0;
+$config['ip_check'] = true;
+$config['referer_check'] = true;
+$config['x_frame_options'] = 'SAMEORIGIN';
+$config['password_min_length'] = 8;
+$config['password_require_nonalpha'] = true;
+
+// Spam/filtering settings
+$config['spam_subject_tag'] = '[SPAM]';
+$config['spam_subject_tag2'] = '[SPAM]';
+$config['junk_mbox'] = 'Junk';
+
+// Performance optimizations
+$config['messages_cache'] = 'db';
+$config['imap_cache'] = 'db';
+$config['messages_cache_threshold'] = 50;
+$config

@@ -1,0 +1,34 @@
+---
+mailsvc_packages:
+  - postfix
+  - dovecot
+  - dovecot-mysql
+  - postfixadmin
+  - phpMyAdmin
+  - rspamd
+  - php-fpm
+  - php-mysql
+  - php-imap
+
+php_service: php-fpm
+www_user: apache
+www_group: apache
+mysql_socket: /var/lib/mysql/mysql.sock
+postfixadmin_config_path: /etc/postfixadmin/config.local.php
+cubemail_config_path: /etc/cubemail/config.inc.php
+cubemail_des_key: "{{ lookup('password', '/dev/null length=24 chars=ascii_letters,digits') }}"
+
+config_paths:
+  - /etc/postfix
+  - /etc/dovecot
+  - /etc/postfixadmin
+  - /etc/phpMyAdmin
+  - /etc/rspamd
+  - /etc/cubemail
+
+data_paths:
+  - /var/lib/postfix
+  - /var/lib/dovecot
+  - /var/lib/phpMyAdmin
+  - /var/lib/rspamd
+  - /var/lib/cubemail

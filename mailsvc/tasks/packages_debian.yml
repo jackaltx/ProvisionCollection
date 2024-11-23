@@ -1,6 +1,8 @@
 ---
-- name: Manage Debian packages
+- name: Manage mail service packages for Debian
   apt:
-    name: "{{ packages[ansible_distribution | lower] }}"
-    state: "{{ state }}"
+    name: "{{ mailsvc_packages }}"
+    state: "{{ mailsvc_state }}"
     update_cache: yes
+    autoremove: "{{ mailsvc_state == 'absent' }}"
+    purge: "{{ mailsvc_state == 'absent' }}"

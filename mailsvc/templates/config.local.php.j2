@@ -1,0 +1,40 @@
+<?php
+$CONF['configured'] = true;
+$CONF['database_type'] = 'mysqli';
+$CONF['database_host'] = '{{ postfixadmin_db.host }}';
+$CONF['database_port'] = '{{ postfixadmin_db.port }}';
+$CONF['database_user'] = '{{ postfixadmin_db.user }}';
+$CONF['database_password'] = '{{ postfixadmin_password }}';
+$CONF['database_name'] = '{{ postfixadmin_db.name }}';
+$CONF['encrypt'] = 'dovecot:BLF-CRYPT';
+$CONF['dovecotpw'] = "/usr/bin/doveadm pw -r 12";
+
+// Enhanced security settings
+$CONF['smtp_server'] = 'localhost';
+$CONF['smtp_port'] = '25';
+$CONF['default_aliases'] = array (
+    'abuse' => 'postmaster',
+    'hostmaster' => 'postmaster',
+    'postmaster' => 'postmaster',
+    'webmaster' => 'postmaster'
+);
+
+// Password policy
+$CONF['password_validation'] = array(
+    'min_length' => 8,
+    'min_digits' => 1,
+    'min_uppercase' => 1,
+    'min_lowercase' => 1,
+    'min_special' => 1
+);
+
+// Security features
+$CONF['xmlrpc_enabled'] = false;
+$CONF['show_footer_text'] = false;
+$CONF['footer_link'] = '';
+$CONF['show_version'] = false;
+$CONF['admin_email'] = 'postmaster@{{ ansible_fqdn }}';
+
+// Session security
+$CONF['session_timeout'] = 60;
+$CONF['setup_password'] = '{{ postfixadmin_setup_password | default(lookup("password", "/dev/null length=32 chars=ascii_letters,digits,punctuation")) }}';

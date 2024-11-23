@@ -1,4 +1,0 @@
-- name: Manage MariaDB packages for Rocky
-  dnf:
-    name: "{{ mariadb_packages }}"
-    state: "{{ mariadb_state }}"

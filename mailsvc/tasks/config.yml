@@ -1,0 +1,29 @@
+---
+- name: Create PostfixAdmin configuration
+  template:
+    src: config.local.php.j2
+    dest: "{{ postfixadmin_config_path }}"
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+    mode: '0640'
+  when: mailsvc_state == "present"
+  notify: restart php-fpm
+
+- name: Ensure Cubemail configuration directory exists
+  file:
+    path: "{{ cubemail_config_path | dirname }}"
+    state: directory
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+    mode: '0750'
+  when: mailsvc_state == "present"
+
+- name: Create Cubemail configuration
+  template:
+    src: cubemail_config.inc.php.j2
+    dest: "{{ cubemail_config_path }}"
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+    mode: '0640'
+  when: mailsvc_state == "present"
+  notify: restart php-fpm

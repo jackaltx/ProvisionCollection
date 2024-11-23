@@ -1,0 +1,38 @@
+---
+- name: Set up database users and permissions
+  block:
+    - name: Create PostfixAdmin database
+      community.mysql.mysql_db:
+        name: "{{ postfixadmin_db.name }}"
+        state: "{{ mailsvc_state }}"
+        login_user: root
+        login_password: "{{ mysql_password }}"
+        login_host: localhost
+        login_unix_socket: "{{ mysql_socket }}"
+
+    - name: Create Cubemail database
+      community.mysql.mysql_db:
+        name: "{{ cubemail_db.name }}"
+        state: "{{ mailsvc_state }}"
+        login_user: root
+        login_password: "{{ mysql_password }}"
+        login_host: localhost
+        login_unix_socket: "{{ mysql_socket }}"
+
+    - name: Create database users
+      community.mysql.mysql_user:
+        name: "{{ item.user }}"
+        password: "{{ item.password }}"
+        host: "{{ item.host }}"
+        priv: "{{ item.name }}.*:ALL"
+        state: "{{ mailsvc_state }}"
+        login_user: root
+        login_password: "{{ mysql_password }}"
+        login_host: localhost
+        login_unix_socket: "{{ mysql_socket }}"
+        check_implicit_admin: true
+      loop:
+        - { user: "{{ postfixadmin_db.user }}", password: "{{ postfixadmin_password }}", host: "{{ postfixadmin_db.host }}", name: "{{ postfixadmin_db.name }}" }
+        - { user: "{{ cubemail_db.user }}", password: "{{ cubemail_password }}", host: "{{ cubemail_db.host }}", name: "{{ cubemail_db.name }}" }
+      no_log: true
+  when: mailsvc_state == "present"

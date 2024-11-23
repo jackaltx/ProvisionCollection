@@ -1,5 +1,6 @@
 ---
-- name: Manage Rocky packages
+- name: Manage mail service packages for Rocky
   dnf:
-    name: "{{ packages[ansible_distribution | lower] }}"
-    state: "{{ state }}"
+    name: "{{ mailsvc_packages }}"
+    state: "{{ mailsvc_state }}"
+    update_cache: yes
