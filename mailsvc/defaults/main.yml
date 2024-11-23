@@ -1,0 +1,47 @@
+---
+mailsvc_state: present
+mailsvc_remove_config: true
+mailsvc_remove_data: false
+mailsvc_security: false
+mysql_password: ""
+mailsvc_creds_path: "/root/.mailsvc_creds_{{ ansible_date_time.iso8601 }}"
+mailsvc_local_creds_path: "./data/mailsvc_creds_{{ ansible_date_time.iso8601 }}"
+
+# Define packages per distribution
+mailsvc_packages:
+  debian:
+    - postfixadmin
+    - mariadb-server
+    - mariadb-client
+    - phpmyadmin
+    - postfix
+    - dovecot-core
+    - dovecot-mysql
+    - dovecot-imapd
+    - dovecot-pop3d
+    - php
+    - php-mysql
+    - php-imap
+  rocky:
+    - postfixadmin
+    - mariadb-server
+    - mariadb-client
+    - phpMyAdmin
+    - postfix
+    - dovecot
+    - dovecot-mysql
+    - php
+    - php-mysql
+    - php-imap
+
+# Database configurations
+databases:
+  postfixadmin:
+    name: postfixadmin
+    user: postfixadmin
+  cubemail:
+    name: cubemail
+    user: cubemail
+  dovecot:
+    name: dovecot
+    user: dovecot

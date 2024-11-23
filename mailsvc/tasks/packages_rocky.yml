@@ -1,0 +1,5 @@
+---
+- name: Manage Rocky packages
+  dnf:
+    name: "{{ packages[ansible_distribution | lower] }}"
+    state: "{{ state }}"

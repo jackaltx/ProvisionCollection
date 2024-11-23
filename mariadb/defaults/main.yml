@@ -1,0 +1,14 @@
+---
+mariadb_state: present
+mysql_password: ""
+
+mariadb_remove_config: false
+mariadb_remove_data: false
+mariadb_security: false
+
+mariadb_conf_path: "{{ (ansible_os_family == 'Debian') | ternary('/etc/mysql/mariadb.conf.d/55-custom-server.cnf', '/etc/my.cnf') }}"
+mariadb_datadir: "{{ (ansible_os_family == 'Debian') | ternary('/var/lib/mysql', '/var/lib/mysql') }}"
+
+mysql_users: []  # List of users: [{user: name, password: pass}]
+mysql_user_file_path: "/root/.mariadb_users_{{ ansible_date_time.iso8601 }}"
+mysql_local_file_path: "./data/mariadb_users_{{ ansible_date_time.iso8601 }}"

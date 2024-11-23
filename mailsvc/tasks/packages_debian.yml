@@ -1,0 +1,6 @@
+---
+- name: Manage Debian packages
+  apt:
+    name: "{{ packages[ansible_distribution | lower] }}"
+    state: "{{ state }}"
+    update_cache: yes

@@ -1,0 +1,51 @@
+---
+
+- name: Set default passwords for users
+  set_fact:
+    mysql_users_with_passwords: "{{ mysql_users_with_passwords | default([]) + [item | combine({'password': generated_password})] }}"
+  vars:
+    generated_password: >-
+      {{ (item.password is not defined or item.password == '' or item.password == none) |
+         ternary(lookup('password', '/dev/null chars=ascii_letters,digits length=16 seed=' + item.user), item.password) }}
+  loop: "{{ mysql_users }}"
+  no_log: true
+
+- name: Create MySQL users
+  community.mysql.mysql_user:
+    name: "{{ item.user }}"
+    password: "{{ item.password }}"
+    host: 'localhost'
+    priv: '*.*:USAGE'
+    state: present
+
+    login_user: root
+    login_password: "{{ mysql_password }}"
+    login_host: localhost
+    login_unix_socket: /run/mysqld/mysqld.sock
+    check_implicit_admin: true
+
+  loop: "{{ mysql_users_with_passwords }}"
+  no_log: true
+
+- name: Create local data directory
+  file:
+    path: "./data"
+    state: directory
+    mode: '0700'
+  delegate_to: localhost
+
+- name: Save user credentials locally
+  copy:
+    content: "{% for user in mysql_users_with_passwords %}{{ user.user }}: {{ user.password }}\n{% endfor %}"
+    dest: "{{ mysql_local_file_path }}"
+    owner: "{{ lookup('env', 'USER') }}"
+    mode: '0600'
+  delegate_to: localhost
+  no_log: true
+
+- name: Save user credentials on remote
+  copy:
+    content: "{% for user in mysql_users_with_passwords %}{{ user.user }}: {{ user.password }}\n{% endfor %}"
+    dest: "{{ mysql_user_file_path }}"
+    mode: '0600'
+  no_log: true

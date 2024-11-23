@@ -1,0 +1,96 @@
+---
+
+#=============================================================================
+- name: Handle MariaDB installation
+  block:
+
+    - name: Set OS-specific variables
+      include_vars: "{{ item }}"
+      with_first_found:
+        - "{{ ansible_distribution|lower }}.yml"
+        - "{{ ansible_os_family|lower }}.yml"
+      tags: [mariadb]
+    
+    - debug:
+        var: mariadb_state
+    - debug:
+        var: mariadb_packages
+      
+    - name: Include OS-specific package tasks
+      include_tasks: "package_{{ ansible_distribution|lower }}.yml"
+
+    - name: Deploy MariaDB configuration
+      template:
+        src: my.cnf.j2
+        dest: "{{ mariadb_conf_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart mariadb
+
+    - name: Start and enable MariaDB service
+      service:
+        name: mariadb
+        state: started
+        enabled: yes
+
+    - name: Set MariaDB root password
+      community.mysql.mysql_user:
+        name: root
+        password: "{{ mysql_password }}"
+        host_all: yes
+        state: present
+      when: mysql_password != ""
+
+    - name: Configure MariaDB security
+      include_tasks: secure.yml
+      when: mariadb_security | bool
+      tags: [security]
+
+    - name: Manage MySQL Users
+      include_tasks: manage_users.yml
+      when: 
+        - mariadb_state == "present"
+        - mysql_users | length > 0
+      tags: [mariadb, users]
+
+  when: mariadb_state == "present"
+  tags: [mariadb]
+
+#=============================================================================
+- name: Handle MariaDB removal
+  block:
+
+    - name: Stop MariaDB service
+      service:
+        name: mariadb
+        state: stopped
+        enabled: false
+
+    - name: Wait for MariaDB to stop
+      wait_for:
+        path: /var/run/mysqld/mysqld.pid
+        state: absent
+        timeout: 30
+
+    - name: Include OS-specific package tasks
+      include_tasks: "packages_{{ ansible_distribution|lower }}.yml"
+      vars:
+        mariadb_packages: "{{ mariadb_packages }}"
+        mariadb_state: "{{ mariadb_state }}"
+
+    - name: Remove MariaDB configuration
+      file:
+        path: "{{ mariadb_conf_path }}"
+        state: absent
+      when: mariadb_remove_config | bool
+
+    - name: Remove MariaDB data directory
+      file:
+        path: "{{ mariadb_datadir }}"
+        state: absent
+      when: mariadb_remove_data | bool
+
+  when: mariadb_state == "absent"
+  tags: [mariadb]
+

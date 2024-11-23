@@ -1,0 +1,66 @@
+---
+- name: Handle Mailsvc Installation
+  block:
+  
+    - name: Include OS-specific package tasks
+      include_tasks: "packages_{{ ansible_distribution|lower }}.yml"
+      vars:
+        packages: "{{ mailsvc_packages }}"
+        state: "{{ mailsvc_state }}"
+
+    - name: Start and enable MariaDB
+      service:
+        name: mariadb
+        state: started
+        enabled: yes
+      when: mailsvc_state == "present"
+
+    - name: Wait for MariaDB to be ready
+      wait_for:
+        port: 3306
+        timeout: 30
+      when: mailsvc_state == "present"
+
+    - name: Include database setup tasks
+      include_tasks: setup_databases.yml
+      when: mailsvc_state == "present"
+
+  when: mailsvc_state == "present"
+  tags: [mailsvc]
+
+- name: Handle Mailsvc Removal
+  block:
+    - name: Stop services
+      service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - mariadb
+        - postfix
+        - dovecot
+      ignore_errors: yes
+
+    - name: Wait for MariaDB to stop
+      wait_for:
+        path: /var/run/mysqld/mysqld.pid
+        state: absent
+        timeout: 30
+
+    - name: Include OS-specific package removal
+      include_tasks: "packages_{{ ansible_distribution|lower }}.yml"
+      vars:
+        packages: "{{ mailsvc_packages }}"
+        state: absent
+
+    - name: Remove data directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/mysql
+        - /var/lib/postfix
+        - /var/lib/dovecot
+      when: mailsvc_remove_data | bool
+  when: mailsvc_state == "absent"
+  tags: [mailsvc]

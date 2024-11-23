@@ -1,0 +1,10 @@
+---
+mariadb_packages:
+  debian:
+    - mariadb-server
+    - mariadb-client
+    - python3-pymysql
+  rocky:
+    - mariadb-server
+    - mariadb-client
+    - python3-PyMySQL
