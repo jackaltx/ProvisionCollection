@@ -1,0 +1,92 @@
+---
+
+# ........................................................................
+- name: Configure Postfix
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - { src: postfix_main.cf.j2, dest: /etc/postfix/main.cf }
+    - { src: postfix_master.cf.j2, dest: /etc/postfix/master.cf }
+    - { src: postfix_mysql_virtual_domains.cf.j2, dest: /etc/postfix/mysql_virtual_domains.cf }
+    - { src: postfix_mysql_virtual_mailboxes.cf.j2, dest: /etc/postfix/mysql_virtual_mailboxes.cf }
+    - { src: postfix_mysql_virtual_aliases.cf.j2, dest: /etc/postfix/mysql_virtual_aliases.cf }
+  notify: restart postfix
+  tags: [postfix_config]
+
+# ........................................................................
+- name: Configure Dovecot
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - { src: dovecot.conf.j2, dest: /etc/dovecot/dovecot.conf }
+    - { src: dovecot-sql.conf.j2, dest: /etc/dovecot/dovecot-sql.conf }
+  notify: restart dovecot
+  tags: [dovecot_config]
+
+- name: Add www-data to dovecot group
+  user:
+    name: www-data
+    groups: dovecot
+    append: yes
+  notify: restart php-fpm
+  tags: [dovecot_config]
+
+- name: Create vmail directory
+  file:
+    path: /var/vmail
+    state: directory
+    owner: vmail
+    group: vmail
+    mode: '0770'
+  tags: [mailconfig]
+
+- name: Ensure vmail user exists
+  user:
+    name: vmail
+    system: yes
+    home: /var/vmail
+    shell: /usr/sbin/nologin
+    uid: 5000  # You might want to adjust this UID
+    group: vmail
+  tags: [mailconfig]
+
+- name: Ensure vmail group exists
+  group:
+    name: vmail
+    system: yes
+    gid: 5000  # You might want to adjust this GID
+  tags: [mailconfig]
+
+- name: Configure IMAP monitoring
+  template:
+    src: dovecot-metrics.conf.j2
+    dest: /etc/dovecot/conf.d/90-metrics.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart dovecot
+  tags: [dovecot_config]
+  
+# ........................................................................
+- name: Configure Rspamd
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: _rspamd
+    group: _rspamd
+    mode: '0640'
+  loop:
+    - { src: rspamd_redis.conf.j2, dest: /etc/rspamd/local.d/redis.conf }
+    - { src: rspamd_worker.conf.j2, dest: /etc/rspamd/local.d/worker-normal.inc }
+  notify: restart rspamd
+  tags: [rspamd_config]
+
+

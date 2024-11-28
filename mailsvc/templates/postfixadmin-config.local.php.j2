@@ -9,9 +9,14 @@ $CONF['database_name'] = '{{ postfixadmin_db.name }}';
 $CONF['encrypt'] = 'dovecot:BLF-CRYPT';
 $CONF['dovecotpw'] = "/usr/bin/doveadm pw -r 12";
 
-// Enhanced security settings
-$CONF['smtp_server'] = 'localhost';
-$CONF['smtp_port'] = '25';
+$CONF['domain_path'] = 'YES';
+$CONF['domain_in_mailbox'] = 'NO';
+$CONF['fetchmail'] = 'NO';
+$CONF['sendmail'] = 'NO';
+
+$CONF['admin_email'] = 'postmaster@{{ mailsvc_domain }}';
+$CONF['footer_text'] = '';
+$CONF['footer_link'] = '';
 $CONF['default_aliases'] = array (
     'abuse' => 'postmaster',
     'hostmaster' => 'postmaster',
@@ -19,7 +24,6 @@ $CONF['default_aliases'] = array (
     'webmaster' => 'postmaster'
 );
 
-// Password policy
 $CONF['password_validation'] = array(
     'min_length' => 8,
     'min_digits' => 1,
@@ -28,13 +32,12 @@ $CONF['password_validation'] = array(
     'min_special' => 1
 );
 
-// Security features
-$CONF['xmlrpc_enabled'] = false;
-$CONF['show_footer_text'] = false;
-$CONF['footer_link'] = '';
-$CONF['show_version'] = false;
-$CONF['admin_email'] = 'postmaster@{{ ansible_fqdn }}';
+$CONF['setup_password'] = '{{ postfixadmin_setup_hash }}';
+$CONF['smtp_server'] = 'localhost';
+$CONF['smtp_port'] = '25';
 
-// Session security
-$CONF['session_timeout'] = 60;
-$CONF['setup_password'] = '{{ postfixadmin_setup_password | default(lookup("password", "/dev/null length=32 chars=ascii_letters,digits,punctuation")) }}';
+$CONF['password_validation'] = array(
+    '#^.{5}#'                => 'password_too_short 5',
+    '#([a-zA-Z].*){3}#'      => 'password_no_characters 3',
+    '#([0-9].*){2}#'         => 'password_no_digits 2',
+);

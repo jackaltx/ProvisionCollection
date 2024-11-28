@@ -6,16 +6,16 @@
         name: "{{ postfixadmin_db.name }}"
         state: "{{ mailsvc_state }}"
         login_user: root
-        login_password: "{{ mysql_password }}"
+        login_password: "{{ mailsvc_mysql_root_password }}"
         login_host: localhost
         login_unix_socket: "{{ mysql_socket }}"
 
-    - name: Create Cubemail database
+    - name: Create roundcube database
       community.mysql.mysql_db:
-        name: "{{ cubemail_db.name }}"
+        name: "{{ roundcube_db.name }}"
         state: "{{ mailsvc_state }}"
         login_user: root
-        login_password: "{{ mysql_password }}"
+        login_password: "{{ mailsvc_mysql_root_password }}"
         login_host: localhost
         login_unix_socket: "{{ mysql_socket }}"
 
@@ -27,12 +27,38 @@
         priv: "{{ item.name }}.*:ALL"
         state: "{{ mailsvc_state }}"
         login_user: root
-        login_password: "{{ mysql_password }}"
+        login_password: "{{ mailsvc_mysql_root_password }}"
         login_host: localhost
         login_unix_socket: "{{ mysql_socket }}"
         check_implicit_admin: true
       loop:
         - { user: "{{ postfixadmin_db.user }}", password: "{{ postfixadmin_password }}", host: "{{ postfixadmin_db.host }}", name: "{{ postfixadmin_db.name }}" }
-        - { user: "{{ cubemail_db.user }}", password: "{{ cubemail_password }}", host: "{{ cubemail_db.host }}", name: "{{ cubemail_db.name }}" }
+        - { user: "{{ roundcube_db.user }}", password: "{{ roundcube_password }}", host: "{{ roundcube_db.host }}", name: "{{ roundcube_db.name }}" }
       no_log: true
-  when: mailsvc_state == "present"
+
+    - name: Capture database schemas
+      shell: |
+        mysqldump --no-data --skip-comments \
+          -u root \
+          -p'{{ mailsvc_mysql_root_password }}' \
+          -S {{ mysql_socket }} \
+          {{ item }} > /tmp/{{ item }}_schema.sql
+      loop:
+        - "{{ postfixadmin_db.name }}"
+        - "{{ roundcube_db.name }}"
+      when: mailsvc_state == "present"
+
+    - name: Fetch schema files locally
+      fetch:
+        src: "/tmp/{{ item }}_schema.sql"
+        dest: "data/schemas/{{ ansible_date_time.date }}_{{ item }}_schema.sql"
+        flat: yes
+      loop:
+        - "{{ postfixadmin_db.name }}"
+        - "{{ roundcube_db.name }}"
+      when: mailsvc_state == "present"
+
+  rescue:
+    - name: Database setup failed
+      fail:
+        msg: "Database setup failed. Rolling back and stopping deployment."

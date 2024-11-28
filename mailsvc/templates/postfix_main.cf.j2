@@ -1,0 +1,52 @@
+# General settings
+myhostname = {{ mailsvc_hostname }}
+mydomain = {{ mailsvc_domain }}
+myorigin = $mydomain
+inet_interfaces = all
+inet_protocols = ipv4
+
+# TLS parameters
+smtpd_tls_cert_file = {{ ssl_cert_file }}
+smtpd_tls_key_file = {{ ssl_key_file }}
+smtpd_tls_security_level = may
+smtp_tls_security_level = may
+smtpd_tls_protocols = !SSLv2,!SSLv3,!TLSv1,!TLSv1.1
+smtp_tls_protocols = !SSLv2,!SSLv3,!TLSv1,!TLSv1.1
+
+# Virtual domains
+virtual_mailbox_domains = mysql:/etc/postfix/mysql_virtual_domains.cf
+virtual_mailbox_maps = mysql:/etc/postfix/mysql_virtual_mailboxes.cf
+virtual_alias_maps = mysql:/etc/postfix/mysql_virtual_aliases.cf
+virtual_transport = lmtp:unix:private/dovecot-lmtp
+
+# SMTP restrictions
+smtpd_recipient_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination,
+    reject_invalid_hostname,
+    reject_non_fqdn_hostname,
+    reject_non_fqdn_recipient,
+    reject_unknown_recipient_domain,
+    reject_rbl_client zen.spamhaus.org
+
+# Authentication
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_security_options = noanonymous
+
+# Milter configuration for rspamd
+milter_protocol = 6
+milter_default_action = accept
+smtpd_milters = inet:localhost:11332
+non_smtpd_milters = inet:localhost:11332
+
+# added claude during rev2 debug
+nis_domains =
+
+# Add by cluse in rev3 for imapd
+smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtp_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1

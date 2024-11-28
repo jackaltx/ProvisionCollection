@@ -1,0 +1,67 @@
+# Add this task after the nginx.conf template task
+
+# ........................................................................
+- name: Configure Nginx
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/conf.d/mail.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart nginx
+  tags: [nginx_config]
+
+- name: Create landing page directory
+  file:
+    path: /var/www/html/mail
+    state: directory
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+    mode: '0755'
+  tags: [nginx_config]
+
+- name: Create landing page
+  template:
+    src: index.html.j2
+    dest: /var/www/html/mail/index.html
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+    mode: '0644'
+  tags: [nginx_config]
+
+# ........................................................................
+- name: Configure PostfixAdmin
+  template:
+    src: postfixadmin-config.local.php.j2
+    dest: "{{ postfixadmin_config_path }}"
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+    mode: '0640'
+  notify: restart php-fpm
+  tags: [postfixadmin_config]
+
+ - name: Run PostfixAdmin upgrade script
+  command: php /usr/share/postfixadmin/public/upgrade.php
+  become: yes
+  become_user: www-data
+  register: upgrade_result
+  changed_when: "'OK' in upgrade_result.stdout"
+  tags: [postfixadmin_setup]
+
+- name: Create initial PostfixAdmin admin user
+  command: "postfixadmin-cli admin add {{ postfixadmin_admin_email }} --superadmin --password {{ postfixadmin_admin_password }}"
+  become: yes
+  when: mailsvc_create_admin | default(false)
+  tags: [postfixadmin_setup] 
+
+# ........................................................................
+- name: Configure Roundcube
+  template:
+    src: roundcube-config.inc.php.j2
+    dest: "{{ roundcube_config_path }}"
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+    mode: '0640'
+  notify: restart php-fpm
+  tags: [roundcube_config]
+

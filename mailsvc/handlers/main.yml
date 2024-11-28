@@ -3,18 +3,34 @@
   service:
     name: postfix
     state: restarted
+  tags: [service_restart]
 
 - name: restart dovecot
   service:
     name: dovecot
     state: restarted
+  tags: [service_restart]
+
+- name: restart nginx
+  service:
+    name: nginx
+    state: restarted
+  tags: [service_restart]
 
 - name: restart php-fpm
   service:
     name: "{{ php_service }}"
     state: restarted
+  tags: [service_restart]
 
 - name: restart rspamd
   service:
     name: rspamd
     state: restarted
+  tags: [service_restart]
+
+- name: restart redis
+  service:
+    name: redis-server
+    state: restarted
+  tags: [service_restart]

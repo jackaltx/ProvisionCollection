@@ -1,35 +1,53 @@
 ---
 mailsvc_packages:
+  # Mail services
   - postfix
+  - postfix-mysql
   - dovecot-core
   - dovecot-imapd
   - dovecot-mysql
+  - dovecot-lmtpd
+  # Web interfaces
   - postfixadmin
-  - phpmyadmin
+  - roundcube
+  - roundcube-mysql
+  - nginx
+  # PHP and extensions
+  - php8.2-fpm
+  - php8.2-mysql
+  - php8.2-imap
+  - php8.2-mbstring
+  #- php8.2-json    claude <--- does not exist in debian 12
+  - php8.2-curl
+  - php8.2-zip
+  - php8.2-xml
+  # Spam filtering
   - rspamd
-  - php-fpm
-  - php-mysql
-  - php-imap
+  - redis-server
+  - dovecot-imapd
+  - dovecot-managesieved  # For mail filtering
+  - dovecot-sieve         # For mail filtering rules
 
 php_service: php8.2-fpm
 www_user: www-data
 www_group: www-data
 mysql_socket: /run/mysqld/mysqld.sock
 postfixadmin_config_path: /etc/postfixadmin/config.local.php
-cubemail_config_path: /etc/cubemail/config.inc.php
-cubemail_des_key: "{{ lookup('password', '/dev/null length=24 chars=ascii_letters,digits') }}"
+roundcube_config_path: /etc/roundcube/config.inc.php
+postfixadmin_setup_hash: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') | password_hash('sha512') }}"
 
 config_paths:
   - /etc/postfix
   - /etc/dovecot
   - /etc/postfixadmin
-  - /etc/phpmyadmin
+  - /etc/nginx
   - /etc/rspamd
-  - /etc/cubemail
+  - /etc/roundcube
+  - /etc/redis
 
 data_paths:
   - /var/lib/postfix
   - /var/lib/dovecot
-  - /var/lib/phpmyadmin
   - /var/lib/rspamd
-  - /var/lib/cubemail
+  - /var/lib/roundcube
+  - /var/lib/redis

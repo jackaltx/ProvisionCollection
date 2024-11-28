@@ -1,0 +1,92 @@
+# roles/mailsvc/templates/nginx.conf.j2
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{ mailsvc_hostname }};
+
+    # Redirect HTTP to HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name {{ mailsvc_hostname }};
+
+    ssl_certificate {{ ssl_cert_file }};
+    ssl_certificate_key {{ ssl_key_file }};
+    
+    # SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-XSS-Protection "1; mode=block";
+    add_header X-Content-Type-Options "nosniff";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    
+    # Root directory for landing page
+    root /var/www/html/mail;
+    index index.html;
+
+    # Landing page location
+    location = / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # PostfixAdmin Configuration
+    location /postfixadmin {
+        alias /usr/share/postfixadmin/public;
+        index index.php;
+
+        location ~ ^/postfixadmin/(.+\.php)$ {
+            alias /usr/share/postfixadmin/public/$1;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $request_filename;
+            fastcgi_pass unix:/run/php/php-fpm.sock;
+            fastcgi_index index.php;
+            fastcgi_param PATH_INFO $fastcgi_path_info;
+            fastcgi_param PATH_TRANSLATED $document_root$fastcgi_path_info;
+        }
+
+        location ~* ^/postfixadmin/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+            alias /usr/share/postfixadmin/public/$1;
+        }
+    }
+
+    # Roundcube Webmail Configuration
+    location /webmail {
+        alias /var/lib/roundcube;
+        index index.php;
+
+        location ~ ^/webmail/(.+\.php)$ {
+            alias /var/lib/roundcube/$1;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $request_filename;
+            fastcgi_pass unix:/run/php/php-fpm.sock;
+            fastcgi_index index.php;
+            fastcgi_param PATH_INFO $fastcgi_path_info;
+            fastcgi_param PATH_TRANSLATED $document_root$fastcgi_path_info;
+        }
+
+        location ~* ^/webmail/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+            alias /var/lib/roundcube/$1;
+        }
+    }
+
+    # Deny access to hidden files
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+
+    # Deny access to certain file types
+    location ~ \.(env|log|git|yml|ini|conf)$ {
+        deny all;
+    }
+}

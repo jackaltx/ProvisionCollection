@@ -1,0 +1,22 @@
+bind {{ redis_bind_address }}
+port {{ redis_port }}
+protected-mode yes
+timeout 0
+tcp-keepalive 300
+daemonize yes
+supervised systemd
+pidfile /var/run/redis/redis-server.pid
+loglevel notice
+logfile /var/log/redis/redis-server.log
+databases 16
+always-show-logo no
+save 900 1
+save 300 10
+save 60 10000
+stop-writes-on-bgsave-error yes
+rdbcompression yes
+rdbchecksum yes
+dbfilename dump.rdb
+dir /var/lib/redis
+maxmemory 256mb
+maxmemory-policy allkeys-lru

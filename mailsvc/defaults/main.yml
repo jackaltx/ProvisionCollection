@@ -1,20 +1,42 @@
 ---
+# State management
 mailsvc_state: present
 mailsvc_remove_config: true
 mailsvc_remove_data: false
-mysql_password: "{{ lookup('env', 'MYSQL_ROOT_PASSWORD') }}"
-password_file: "/root/mailsvc_passwords_{{ ansible_date_time.date }}.txt"
-local_password_file: "./data/mailsvc_passwords_{{ ansible_date_time.date }}.txt"
+
+# Domain configuration
+mailsvc_domain: "a0a0.org"
+mailsvc_hostname: "mailsvc.{{ mailsvc_domain }}"
+
+# SSL certificate paths
+ssl_cert_file: "/etc/ssl/certs/{{ mailsvc_hostname }}.crt"
+ssl_key_file: "/etc/ssl/private/{{ mailsvc_hostname }}.key"
 
 # Database configuration
+mailsvc_mysql_root_password: ''  # Must be provided in inventory
+
+# Database configurations
 postfixadmin_db:
   name: postfixadmin
   user: postfixadmin
   host: localhost
   port: 3306
 
-cubemail_db:
-  name: cubemail
-  user: cubemail
+roundcube_db:
+  name: roundcube
+  user: roundcube
   host: localhost
   port: 3306
+
+# File paths for passwords and data
+password_file: "/root/mailsvc_passwords_{{ ansible_date_time.date }}.txt"
+local_password_file: "./data/mailsvc_passwords_{{ ansible_date_time.date }}.txt"
+
+# Redis configuration for Rspamd
+redis_bind_address: "127.0.0.1"
+redis_port: 6379
+
+# PostfixAdmin admin setup
+mailsvc_create_admin: false
+postfixadmin_admin_email: "admin@{{ mailsvc_domain }}"
+postfixadmin_admin_password: "{{ lookup('password', '/dev/null length=16 chars=ascii_letters,digits,punctuation') }}"

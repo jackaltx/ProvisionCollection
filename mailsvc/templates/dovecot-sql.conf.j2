@@ -1,0 +1,10 @@
+driver = mysql
+connect = host={{ postfixadmin_db.host }} dbname={{ postfixadmin_db.name }} user={{ postfixadmin_db.user }} password={{ postfixadmin_password }}
+default_pass_scheme = BLF-CRYPT
+
+password_query = SELECT username as user, password, concat('/var/vmail/', maildir) as userdb_home, \
+  concat('maildir:/var/vmail/', maildir) as userdb_mail, uid, gid \
+  FROM mailbox WHERE username = '%u' AND active = '1'
+
+user_query = SELECT concat('/var/vmail/', maildir) as home, uid, gid \
+  FROM mailbox WHERE username = '%u' AND active = '1'

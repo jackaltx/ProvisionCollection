@@ -1,4 +1,22 @@
 ---
+
+# ......................................................................
+- name: Add Sury PHP repository signing key
+  get_url:
+    url: https://packages.sury.org/php/apt.gpg
+    dest: /usr/share/keyrings/deb.sury.org-php.gpg
+    mode: '0644'
+  tags: [packages]
+
+# ......................................................................
+- name: Add Sury PHP repository
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ {{ ansible_distribution_release }} main"
+    filename: php-sury
+    state: present
+  tags: [packages]
+
+# ......................................................................
 - name: Manage mail service packages for Debian
   apt:
     name: "{{ mailsvc_packages }}"

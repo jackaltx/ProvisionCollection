@@ -1,68 +1,153 @@
 ---
+
 - name: Include OS-specific variables
   include_vars: "{{ ansible_distribution|lower }}.yml"
+  tags: [always]
 
+
+- name: Verify SSL certificates exist
+  stat:
+    path: "{{ item }}"
+  register: ssl_file_check
+  loop:
+    - "{{ ssl_cert_file }}"
+    - "{{ ssl_key_file }}"
+
+
+- name: Check certificate status
+  fail:
+    msg: "Required SSL certificate {{ item.item }} is missing"
+  when: not item.stat.exists
+  loop: "{{ ssl_file_check.results }}"
+  tags: [ssl_check]
+
+
+# ==================================================================
 - name: Generate random passwords
-  when: mailsvc_state == "present"
   block:
     - name: Generate postfixadmin password
       set_fact:
         postfixadmin_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits,punctuation') }}"
+      tags: [passwords]
 
-    - name: Generate cubemail password
+    - name: Generate roundcube password
       set_fact:
-        cubemail_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits,punctuation') }}"
+        roundcube_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits,punctuation') }}"
+      tags: [passwords]
+
+    - name: Generate roundcube des key
+      set_fact:
+        roundcube_des_key: "{{ lookup('password', '/dev/null length=24 chars=ascii_letters,digits') }}"
+      tags: [passwords]
 
     - name: Save passwords to remote file
       copy:
         dest: "{{ password_file }}"
         content: |
           PostfixAdmin Password: {{ postfixadmin_password }}
-          Cubemail Password: {{ cubemail_password }}
-          MySQL Root Password: {{ mysql_password }}
+          Roundcube Password: {{ roundcube_password }}
+          MySQL Root Password: {{ mailsvc_mysql_root_password }}
+          Roundcube DES Key: {{ roundcube_des_key }}
         mode: '0600'
+      tags: [passwords]
 
     - name: Fetch password file locally
       fetch:
         src: "{{ password_file }}"
         dest: "{{ local_password_file }}"
         flat: yes
+      tags: [passwords]
 
-- name: Include OS-specific package tasks
-  include_tasks: "packages_{{ ansible_distribution|lower }}.yml"
-
-- name: Include database management tasks
-  include_tasks: database.yml
-
-- name: Include configuration tasks
-  include_tasks: config.yml
-
-- name: Ensure services are started and enabled
   when: mailsvc_state == "present"
-  service:
-    name: "{{ item }}"
-    state: started
-    enabled: yes
-  loop:
-    - postfix
-    - dovecot
-    - "{{ php_service }}"
-    - rspamd
 
-- name: Remove configuration directories
-  when: 
-    - mailsvc_state == "absent"
-    - mailsvc_remove_config | bool
-  file:
-    path: "{{ item }}"
-    state: absent
-  loop: "{{ config_paths }}"
+# ==================================================================
+- name: Setup mail services
+  when: mailsvc_state == "present"
+  block:
 
-- name: Remove data directories
-  when:
-    - mailsvc_state == "absent"
-    - mailsvc_remove_data | bool
-  file:
-    path: "{{ item }}"
-    state: absent
-  loop: "{{ data_paths }}"
+    - name: Include OS-specific package tasks
+      include_tasks: "packages_{{ ansible_distribution|lower }}.yml"
+      tags: [packages]
+
+    - name: Include database management tasks
+      include_tasks: database.yml
+      tags: [database]
+
+    - name: Include Redis configuration tasks
+      include_tasks: redis.yml
+      tags: [redis]
+
+    - name: Include mail service configuration tasks
+      include_tasks: mailconfig.yml
+      tags: [mailconfig]
+
+    #..........................................................
+    - name: Include web configuration tasks
+      include_tasks: webconfig.yml
+      tags: [webconfig]
+
+    #...........................................................
+    - name: Ensure services are started and enabled
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - nginx
+        - redis-server
+        - postfix
+        - dovecot
+        - "{{ php_service }}"
+        - rspamd
+      tags: [services]
+
+# ==================================================================
+- name: Remove services and configuration
+  when: mailsvc_state == "absent"
+  block:
+    - name: Stop services
+      service:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - nginx
+        - redis-server
+        - postfix
+        - dovecot
+        - "{{ php_service }}"
+        - rspamd
+      register: service_result
+      until: service_result is success
+      retries: 5
+      delay: 10
+      tags: [services]
+
+    - name: Wait for services to stop
+      wait_for:
+        path: "/var/run/{{ item }}.pid"
+        state: absent
+        timeout: 30
+      loop:
+        - nginx
+        - postfix
+        - dovecot
+        - rspamd
+        - "{{ php_service }}"
+      ignore_errors: yes
+      tags: [services]
+
+    - name: Remove configuration directories
+      when: mailsvc_remove_config | bool
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ config_paths }}"
+      tags: [cleanup]
+
+    - name: Remove data directories
+      when: mailsvc_remove_data | bool
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ data_paths }}"
+      tags: [cleanup]

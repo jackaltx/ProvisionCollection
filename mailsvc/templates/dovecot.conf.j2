@@ -1,0 +1,88 @@
+protocols = imap lmtp
+
+ssl = required
+ssl_cert = <{{ ssl_cert_file }}
+ssl_key = <{{ ssl_key_file }}
+ssl_min_protocol = TLSv1.2
+
+mail_location = maildir:/var/vmail/%d/%n
+mail_privileged_group = vmail
+
+namespace inbox {
+  inbox = yes
+}
+
+service lmtp {
+  unix_listener /var/spool/postfix/private/dovecot-lmtp {
+    mode = 0600
+    user = postfix
+    group = postfix
+  }
+}
+
+service auth {
+  unix_listener /var/spool/postfix/private/auth {
+    mode = 0660
+    user = postfix
+    group = postfix
+  }
+}
+
+userdb {
+  driver = sql
+  args = /etc/dovecot/dovecot-sql.conf
+}
+
+passdb {
+  driver = sql
+  args = /etc/dovecot/dovecot-sql.conf
+}
+
+# added by claude for improved imap
+
+service imap-login {
+  inet_listener imap {
+    port = 143
+  }
+  inet_listener imaps {
+    port = 993
+    ssl = yes
+  }
+}
+
+protocol imap {
+  mail_plugins = $mail_plugins quota imap_quota
+  imap_idle_notify_interval = 29 mins
+  mail_max_userip_connections = 20
+}
+
+# Mail processing settings
+mail_location = maildir:/var/vmail/%d/%n
+mail_privileged_group = vmail
+mail_access_groups = vmail
+
+# Mailbox settings
+namespace inbox {
+  inbox = yes
+  separator = /
+  mailbox Drafts {
+    auto = subscribe
+    special_use = \Drafts
+  }
+  mailbox Sent {
+    auto = subscribe
+    special_use = \Sent
+  }
+  mailbox Trash {
+    auto = subscribe
+    special_use = \Trash
+  }
+  mailbox Spam {
+    auto = subscribe
+    special_use = \Junk
+  }
+}
+
+# Performance settings
+mail_fsync = optimized
+mail_max_userip_connections = 20

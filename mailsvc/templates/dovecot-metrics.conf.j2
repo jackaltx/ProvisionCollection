@@ -1,0 +1,19 @@
+metric imap_command {
+  filter {
+    event_name = imap_command_finished
+  }
+  fields {
+    command = &imap_command
+    tagged_reply = &tagged_reply
+  }
+}
+
+metric imap_session {
+  filter {
+    event_name = imap_session_disconnected
+  }
+  fields {
+    user = &user
+  }
+}
+
