@@ -1,0 +1,16 @@
+{% for service, config in mailsvc_log_paths.items() %}
+{{ config.path }} {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 0640 syslog adm
+    sharedscripts
+    postrotate
+        invoke-rc.d rsyslog rotate > /dev/null
+        setfacl -m u:{{ alloy_user }}:r {{ config.path }}
+    endscript
+}
+{% endfor %}

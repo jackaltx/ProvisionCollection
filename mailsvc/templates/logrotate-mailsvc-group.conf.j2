@@ -1,0 +1,77 @@
+# PostfixAdmin logs
+/var/log/postfixadmin/*.log {
+    create 0640 {{ www_user }} {{ www_group }}
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        invoke-rc.d rsyslog rotate > /dev/null
+    endscript
+}
+
+# Roundcube logs
+/var/log/roundcube/*.log {
+    create 0640 {{ www_user }} {{ www_group }}
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        invoke-rc.d rsyslog rotate > /dev/null
+    endscript
+}
+
+# Postfix logs
+/var/log/mail.log
+/var/log/mail.warn
+/var/log/mail.err {
+    create 0640 syslog adm
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        invoke-rc.d postfix reload > /dev/null
+        invoke-rc.d rsyslog rotate > /dev/null
+    endscript
+}
+
+# Dovecot logs
+/var/log/dovecot*.log {
+    create 0640 vmail root
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        doveadm log reopen
+    endscript
+}
+
+# Rspamd logs
+/var/log/rspamd/*.log {
+    create 0640 _rspamd _rspamd
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        kill -USR1 `cat /run/rspamd/rspamd.pid 2>/dev/null` 2>/dev/null || true
+    endscript
+}

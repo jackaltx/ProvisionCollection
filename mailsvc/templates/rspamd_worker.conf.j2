@@ -1,3 +1,13 @@
-upstream "local" {
-    self_scan = true;
+#upstream "local" {
+#    self_scan = true;
+#}
+
+worker "normal" {
+    bind_socket = "localhost:11332";
+    .include "$CONFDIR/worker-normal.inc"
+    logging {
+        format = "json";
+        facility = "mail";
+        level = "info";
+    }
 }

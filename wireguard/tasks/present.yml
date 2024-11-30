@@ -1,0 +1,86 @@
+---
+
+# ...................................................................
+- name: Verify required variables are set
+  ansible.builtin.fail:
+    msg: "Required variable {{ item }} is not set"
+  when: vars[item] | length == 0
+  with_items:
+    - wireguard_svr_public_key
+    - wireguard_cluster_preshared_key
+    - wireguard_server_endpoint
+  tags:
+    - wireguard
+    - wireguard:config
+    - wireguard:validate
+
+# ...................................................................
+- name: Install Wireguard packages
+  include_tasks: "{{ ansible_os_family | lower }}.yml"
+  tags:
+    - wireguard
+    - wireguard:install
+    - wireguard:packages
+
+
+# ...................................................................
+# configure section
+#
+- name: Create /etc/wireguard directory
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: Generate Wireguard keys
+  ansible.builtin.shell:
+    cmd: "wg genkey | tee /etc/wireguard/private.key | wg pubkey > /etc/wireguard/public.key"
+  when: not wg_exists.stat.exists
+  become: true
+
+- name: Set Wireguard key permissions
+  ansible.builtin.file:
+    path: "/etc/wireguard/{{ item }}"
+    mode: '0600'
+  with_items:
+    - private.key
+    - public.key
+  become: true
+
+- name: Read private key
+  ansible.builtin.slurp:
+    path: /etc/wireguard/private.key
+  register: private_key_content
+  become: true
+
+- name: Read public key
+  ansible.builtin.slurp:
+    path: /etc/wireguard/public.key
+  register: public_key_content
+  become: true
+
+# ...................................................................
+# local copy for V&V
+- name: Ensure data directory exists
+  ansible.builtin.file:
+    path: "./data"
+    state: directory
+    mode: '0755'
+
+- name: Save keys to data file
+  ansible.builtin.copy:
+    content: |
+      wireguard_keys:
+        private_key: "{{ private_key_content['content'] | b64decode | trim }}"
+        public_key: "{{ public_key_content['content'] | b64decode | trim }}"
+    dest: "./data/wireguard_keys.yml"
+    mode: '0600'
+
+# ...................................................................
+- name: Configure wg0.conf
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    mode: '0600'
+  become: true

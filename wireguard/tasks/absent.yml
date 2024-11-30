@@ -1,0 +1,34 @@
+---
+- name: Stop Wireguard service
+  ansible.builtin.systemd:
+    name: wg-quick@wg0
+    state: stopped
+    enabled: false
+  become: true
+  ignore_errors: true
+
+- name: Remove Wireguard configuration
+  ansible.builtin.file:
+    path: "/etc/wireguard"
+    state: absent
+  become: true
+
+- name: Remove Wireguard packages for Debian
+  ansible.builtin.apt:
+    name: wireguard
+    state: absent
+    purge: true
+  when: ansible_os_family == 'Debian'
+  become: true
+
+- name: Remove Wireguard packages for RHEL
+  ansible.builtin.dnf:
+    name: wireguard-tools
+    state: absent
+  when: ansible_os_family == 'RedHat'
+  become: true
+
+- name: Remove data file
+  ansible.builtin.file:
+    path: "./data/wireguard_keys.yml"
+    state: absent

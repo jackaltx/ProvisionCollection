@@ -1,0 +1,53 @@
+---
+# Method 1: Add Alloy user to adm group
+- name: Add Alloy user to adm group (Group method)
+  user:
+    name: "{{ alloy_user }}"
+    groups: adm
+    append: yes
+  when: mailsvc_log_access_method == 'group'
+  tags: [log_access]
+
+# Method 2: Change file permissions to 644
+- name: Set world-readable permissions on log files (Mode method)
+  file:
+    path: "{{ item.value.path }}"
+    mode: '0644'
+    owner: syslog
+    group: adm
+  loop: "{{ mailsvc_log_paths | dict2items }}"
+  when: mailsvc_log_access_method == 'mode'
+  tags: [log_access]
+
+# Method 3: Use setfacl (for RHEL)
+- name: Install ACL package (ACL method)
+  package:
+    name: acl
+    state: present
+  when: 
+    - mailsvc_log_access_method == 'acl'
+    - ansible_os_family == 'RedHat'
+  tags: [log_access]
+
+- name: Set ACL permissions for Alloy user (ACL method)
+  acl:
+    path: "{{ item.value.path }}"
+    entity: "{{ alloy_user }}"
+    etype: user
+    permissions: r
+    state: present
+  loop: "{{ mailsvc_log_paths | dict2items }}"
+  when: 
+    - mailsvc_log_access_method == 'acl'
+    - ansible_os_family == 'RedHat'
+  tags: [log_access]
+
+# Ensure logrotate maintains permissions
+- name: Configure logrotate to maintain permissions
+  template:
+    src: "logrotate-mailsvc-{{ mailsvc_log_access_method }}.conf.j2"
+    dest: /etc/logrotate.d/mailsvc
+    owner: root
+    group: root
+    mode: '0644'
+  tags: [log_access]

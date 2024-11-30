@@ -40,13 +40,51 @@
   notify: restart php-fpm
   tags: [postfixadmin_config]
 
- - name: Run PostfixAdmin upgrade script
-  command: php /usr/share/postfixadmin/public/upgrade.php
-  become: yes
-  become_user: www-data
-  register: upgrade_result
-  changed_when: "'OK' in upgrade_result.stdout"
+
+- name: Create PostfixAdmin setup.php file
+  template:
+    src: postfixadmin-setup.php.j2
+    dest: /usr/share/postfixadmin/templates_c/setup.php
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+    mode: '0640'
   tags: [postfixadmin_setup]
+
+- name: Ensure templates_c directory exists with correct permissions
+  file:
+    path: /usr/share/postfixadmin/templates_c
+    state: directory
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+    mode: '0750'
+  tags: [postfixadmin_setup]
+
+
+- name: Create and set permissions for Ansible temp directory
+  file:
+    path: /tmp/ansible-tmp
+    state: directory
+    mode: '1777'  # world-writable with sticky bit
+  tags: [postfixadmin_setup]
+
+# Then run the upgrade with better error handling
+- name: Run PostfixAdmin upgrade script
+  command: php /usr/share/postfixadmin/public/upgrade.php
+  args:
+    chdir: /usr/share/postfixadmin/public
+  become: yes
+  become_user: "{{ www_user }}"
+  register: upgrade_result
+  ignore_errors: yes
+  changed_when: false
+  tags: [postfixadmin_setup]
+
+- name: Check PostfixAdmin upgrade status
+  fail:
+    msg: "PostfixAdmin upgrade failed: {{ upgrade_result.stdout | default('Unknown error') }}"
+  when: upgrade_result is failed
+  tags: [postfixadmin_setup]
+
 
 - name: Create initial PostfixAdmin admin user
   command: "postfixadmin-cli admin add {{ postfixadmin_admin_email }} --superadmin --password {{ postfixadmin_admin_password }}"

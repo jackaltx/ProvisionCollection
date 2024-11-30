@@ -1,0 +1,10 @@
+[Interface]
+PrivateKey = {{ private_key_content['content'] | b64decode | trim }}
+Address = {{ wireguard_client_ip }}
+
+[Peer]
+PublicKey = {{ wireguard_svr_public_key }}
+PresharedKey = {{ wireguard_cluster_preshared_key }}
+Endpoint = {{ wireguard_server_endpoint }}:{{ wireguard_server_port }}
+AllowedIPs = {{ wireguard_server_allowed_ips }}
+PersistentKeepalive = 25

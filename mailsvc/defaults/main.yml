@@ -8,6 +8,12 @@ mailsvc_remove_data: false
 mailsvc_domain: "a0a0.org"
 mailsvc_hostname: "mailsvc.{{ mailsvc_domain }}"
 
+# Monitoring configuration
+# -- added by claude for rev3 testing
+mailsvc_enable_monitoring: true
+mailsvc_loki_enabled: true
+mailsvc_telegraf_planned: true
+
 # SSL certificate paths
 ssl_cert_file: "/etc/ssl/certs/{{ mailsvc_hostname }}.crt"
 ssl_key_file: "/etc/ssl/private/{{ mailsvc_hostname }}.key"
@@ -38,5 +44,31 @@ redis_port: 6379
 
 # PostfixAdmin admin setup
 mailsvc_create_admin: false
+
+# current
 postfixadmin_admin_email: "admin@{{ mailsvc_domain }}"
 postfixadmin_admin_password: "{{ lookup('password', '/dev/null length=16 chars=ascii_letters,digits,punctuation') }}"
+mailsvc_create_admin: false  # Set to true when you want to create the admin user
+
+
+# Log paths that Alloy will scrape
+mailsvc_log_paths:
+  mail_main:
+    path: /var/log/mail.log
+    format: syslog
+  dovecot_auth:
+    path: /var/log/dovecot-auth.log
+    format: syslog
+  rspamd:
+    path: /var/log/rspamd/rspamd.log
+    format: json
+  roundcube_auth:
+    path: /var/log/roundcube/login.log
+    format: syslog
+  postfix_queue:
+    path: /var/log/postfix/queue.log
+    format: syslog
+
+# Options: 'group', 'mode', 'acl'
+mailsvc_log_access_method: 'group'
+alloy_user: 'alloy'

@@ -1,0 +1,6 @@
+---
+- name: Install Wireguard on RHEL
+  ansible.builtin.dnf:
+    pkg:
+      - wireguard-tools
+  become: true

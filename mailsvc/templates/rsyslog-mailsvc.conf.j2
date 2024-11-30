@@ -1,0 +1,17 @@
+# Main mail logging
+mail.info,mail.warn,mail.err    /var/log/mail.log
+
+# Separate authentication logging for easier parsing
+if $programname == 'dovecot' and ($msg contains 'auth' or $msg contains 'login') then {
+    /var/log/dovecot-auth.log
+}
+
+# Postfix queue logging (separate for metric extraction)
+if $programname startswith 'postfix' and $msg contains 'queue' then {
+    /var/log/postfix/queue.log
+}
+
+# Roundcube authentication logging
+if $programname == 'roundcube' and ($msg contains 'Login' or $msg contains 'Authentication') then {
+    /var/log/roundcube/login.log
+}

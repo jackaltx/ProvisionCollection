@@ -1,0 +1,49 @@
+---
+
+# .........................................................
+- name: Create log directories
+  file:
+    path: "{{ item.path | dirname }}"
+    state: directory
+    owner: syslog
+    group: adm
+    mode: '0755'  # Ensure Alloy can read directories
+  loop: "{{ mailsvc_log_paths | dict2items }}"
+  tags: [monitoring, logging]
+
+
+# .........................................................
+- name: Configure rsyslog for mail services
+  template:
+    src: rsyslog-mailsvc.conf.j2
+    dest: /etc/rsyslog.d/20-mailsvc.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart rsyslog
+  tags: [monitoring, logging]
+
+
+# .........................................................
+- name: Ensure log files have correct permissions
+  file:
+    path: "{{ item.value.path }}"
+    state: touch
+    owner: syslog
+    group: adm
+    mode: '0644'  # Readable by Alloy
+  loop: "{{ mailsvc_log_paths | dict2items }}"
+  tags: [monitoring, logging]
+
+
+# .........................................................
+# Add this task to install the logrotate config
+- name: Install logrotate configuration
+  template:
+    src: logrotate-mailsvc.conf.j2
+    dest: /etc/logrotate.d/mailsvc
+    owner: root
+    group: root
+    mode: '0644'
+  tags: [monitoring, logging]
+

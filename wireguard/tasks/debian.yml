@@ -1,0 +1,7 @@
+---
+- name: Install Wireguard on Debian
+  ansible.builtin.apt:
+    update_cache: true
+    pkg:
+      - wireguard
+  become: true

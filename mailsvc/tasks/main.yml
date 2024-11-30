@@ -101,6 +101,11 @@
         - rspamd
       tags: [services]
 
+    #............................................................
+    - name: Configure log access for Alloy
+      include_tasks: log-access.yml
+      tags: [log_access]
+
 # ==================================================================
 - name: Remove services and configuration
   when: mailsvc_state == "absent"

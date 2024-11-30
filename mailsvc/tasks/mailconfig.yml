@@ -39,6 +39,35 @@
   notify: restart php-fpm
   tags: [dovecot_config]
 
+- name: Configure IMAP monitoring
+  template:
+    src: dovecot-metrics.conf.j2
+    dest: /etc/dovecot/conf.d/90-metrics.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart dovecot
+  tags: [dovecot_config]
+  
+
+# ..............................................................
+- name: Create vmail group
+  group:
+    name: vmail
+    gid: 5000
+    system: yes
+  tags: [mail_setup]
+
+- name: Create vmail user
+  user:
+    name: vmail
+    uid: 5000
+    group: vmail
+    home: /var/vmail
+    shell: /usr/sbin/nologin
+    system: yes
+  tags: [mail_setup]
+
 - name: Create vmail directory
   file:
     path: /var/vmail
@@ -65,16 +94,7 @@
     gid: 5000  # You might want to adjust this GID
   tags: [mailconfig]
 
-- name: Configure IMAP monitoring
-  template:
-    src: dovecot-metrics.conf.j2
-    dest: /etc/dovecot/conf.d/90-metrics.conf
-    owner: root
-    group: root
-    mode: '0644'
-  notify: restart dovecot
-  tags: [dovecot_config]
-  
+
 # ........................................................................
 - name: Configure Rspamd
   template:
