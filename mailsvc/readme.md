@@ -87,6 +87,94 @@ redis_port: 6379
   roles:
     - mailsvc
 ```
+## Complete Removal
+
+To completely remove all mail services, databases, and configurations:
+
+```yaml
+---
+- name: Remove mail server completely
+  hosts: mailserver
+  become: true
+  vars:
+    mailsvc_state: absent
+    mailsvc_remove_config: true
+    mailsvc_remove_data: true
+    mailsvc_mysql_root_password: "your_mysql_root_password"
+  roles:
+    - mailsvc
+```
+
+### What Gets Removed
+
+When running with `mailsvc_state: absent`:
+
+1. **Services Stopped and Disabled**
+   - nginx
+   - postfix
+   - dovecot
+   - php-fpm
+   - rspamd
+   - redis-server
+
+2. **With `mailsvc_remove_config: true`**
+   - All configuration files from:
+     - /etc/postfix
+     - /etc/dovecot
+     - /etc/postfixadmin
+     - /etc/nginx
+     - /etc/rspamd
+     - /etc/roundcube
+     - /etc/redis
+
+3. **With `mailsvc_remove_data: true`**
+   - All data directories:
+     - /var/lib/postfix
+     - /var/lib/dovecot
+     - /var/lib/rspamd
+     - /var/lib/roundcube
+     - /var/lib/redis
+   - Databases:
+     - postfixadmin database
+     - roundcube database
+   - Database users:
+     - postfixadmin user
+     - roundcube user
+
+### Clean Up After Removal
+
+After running the removal playbook, you may want to:
+
+1. Verify removal of mail-related databases:
+   ```sql
+   mysql -u root -p
+   SHOW DATABASES;
+   ```
+
+2. Check for any remaining processes:
+   ```bash
+   ps aux | grep -E 'postfix|dovecot|rspamd|nginx'
+   ```
+
+3. Verify configuration cleanup:
+   ```bash
+   ls -la /etc/{postfix,dovecot,postfixadmin,nginx/conf.d,rspamd,roundcube}
+   ```
+
+4. Check data directory cleanup:
+   ```bash
+   ls -la /var/lib/{postfix,dovecot,rspamd,roundcube}
+   ```
+
+### DNS Records
+
+After removal, remember to:
+1. Remove or update MX records
+2. Remove SPF records
+3. Remove DKIM records
+4. Remove DMARC records
+
+This ensures no mail is attempted to be delivered to the removed mail server.
 
 ## Required DNS Records
 
