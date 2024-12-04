@@ -1,15 +1,33 @@
-# Add this task after the nginx.conf template task
+---
 
 # ........................................................................
-- name: Configure Nginx
+
+- name: Enable required Apache modules
+  command: "a2enmod {{ item }}"
+  with_items:
+    - proxy_fcgi
+    - setenvif
+    - php8.3-fpm
+    - headers
+    - ssl
+  notify: restart apache2
+  tags: [apache2_config]
+
+- name: Copy Apache virtual host configuration
   template:
-    src: nginx.conf.j2
-    dest: /etc/nginx/conf.d/mail.conf
-    owner: root
-    group: root
+    src: apache.conf.j2
+    dest: /etc/apache2/sites-available/mail.conf
     mode: '0644'
-  notify: restart nginx
-  tags: [nginx_config]
+  notify: restart apache2
+  tags: [apache2_config]
+
+- name: Enable mail virtual host
+  command: a2ensite mail.conf
+  tags: [apache2_config]
+
+- name: Disable default Apache site
+  command: a2dissite 000-default.conf
+  tags: [apache2_config]
 
 - name: Create landing page directory
   file:
@@ -18,7 +36,7 @@
     owner: "{{ www_user }}"
     group: "{{ www_group }}"
     mode: '0755'
-  tags: [nginx_config]
+  tags: [apache2_config]
 
 - name: Create landing page
   template:
@@ -27,9 +45,18 @@
     owner: "{{ www_user }}"
     group: "{{ www_group }}"
     mode: '0644'
-  tags: [nginx_config]
+  tags: [apache2_config]
 
 # ........................................................................
+- name: Create /etc/postfixadmin iff required due to apt issue
+  ansible.builtin.file:
+    path: /etc/postfixadmin
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: [postfixadmin_config]
+
 - name: Configure PostfixAdmin
   template:
     src: postfixadmin-config.local.php.j2
@@ -93,6 +120,24 @@
   tags: [postfixadmin_setup] 
 
 # ........................................................................
+- name: Create /etc/roundcube iff required due to apt issue
+  ansible.builtin.file:
+    path: /etc/roundcube
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: [roundcube_config]
+
+- name: Create /var/lib/roundcube iff required due to apt issue
+  ansible.builtin.file:
+    path: /var/lib/roundcube
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: [roundcube_config]
+
 - name: Configure Roundcube
   template:
     src: roundcube-config.inc.php.j2

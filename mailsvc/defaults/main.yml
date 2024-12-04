@@ -5,8 +5,9 @@ mailsvc_remove_config: true
 mailsvc_remove_data: false
 
 # Domain configuration
+mailsvc_host: "mailsvc0"
 mailsvc_domain: "a0a0.org"
-mailsvc_hostname: "mailsvc.{{ mailsvc_domain }}"
+mailsvc_hostname: "{{ mailsvc_host }}.{{ mailsvc_domain }}"
 
 # Monitoring configuration
 # -- added by claude for rev3 testing

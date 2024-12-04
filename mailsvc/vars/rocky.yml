@@ -9,7 +9,10 @@ mailsvc_packages:
   - postfixadmin
   - roundcube
   - roundcube-mysql
-  - nginx
+  - apache2
+  - apache2-utils
+  - libapache2-mod-php
+
   # PHP and extensions
   - php-fpm
   - php-mysql

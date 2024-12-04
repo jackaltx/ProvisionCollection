@@ -11,9 +11,9 @@
     state: restarted
   tags: [service_restart]
 
-- name: restart nginx
+- name: restart apache2
   service:
-    name: nginx
+    name: apache2
     state: restarted
   tags: [service_restart]
 

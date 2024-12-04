@@ -5,25 +5,34 @@
   tags: [always]
 
 
+# ==================================================================
+# Only required during installation
+
 - name: Verify SSL certificates exist
-  stat:
-    path: "{{ item }}"
-  register: ssl_file_check
-  loop:
-    - "{{ ssl_cert_file }}"
-    - "{{ ssl_key_file }}"
+  when: mailsvc_state == "present"
+  block:
 
+  - name: Get certificate file stats
+    stat:
+      path: "{{ item }}"
+    register: ssl_file_check
+    loop:
+      - "{{ ssl_cert_file }}"
+      - "{{ ssl_key_file }}"
 
-- name: Check certificate status
-  fail:
-    msg: "Required SSL certificate {{ item.item }} is missing"
-  when: not item.stat.exists
-  loop: "{{ ssl_file_check.results }}"
-  tags: [ssl_check]
+  - name: Check certificate status
+    fail:
+      msg: "Required SSL certificate {{ item.item }} is missing"
+    when: not item.stat.exists
+    loop: "{{ ssl_file_check.results }}"
+    tags: [ssl_check]
 
 
 # ==================================================================
+#  Only required during installation
+
 - name: Generate random passwords
+  when: mailsvc_state == "present"
   block:
     - name: Generate postfixadmin password
       set_fact:
@@ -58,9 +67,10 @@
         flat: yes
       tags: [passwords]
 
-  when: mailsvc_state == "present"
 
 # ==================================================================
+#  Installation
+
 - name: Setup mail services
   when: mailsvc_state == "present"
   block:
@@ -93,7 +103,7 @@
         state: started
         enabled: yes
       loop:
-        - nginx
+        - apache2
         - redis-server
         - postfix
         - dovecot
@@ -107,6 +117,8 @@
       tags: [log_access]
 
 # ==================================================================
+# Removal
+
 - name: Remove services and configuration
   when: mailsvc_state == "absent"
   block:
@@ -115,7 +127,7 @@
         name: "{{ item }}"
         state: stopped
       loop:
-        - nginx
+        - apache2
         - redis-server
         - postfix
         - dovecot
@@ -133,7 +145,7 @@
         state: absent
         timeout: 30
       loop:
-        - nginx
+        - apache2
         - postfix
         - dovecot
         - rspamd

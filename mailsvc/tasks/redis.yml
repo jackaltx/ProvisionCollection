@@ -1,4 +1,22 @@
 ---
+
+- name: Create /etc/redis iff required due to apt issue
+  ansible.builtin.file:
+    path: /etc/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: '0755'
+
+- name: Create /var/lib/redis iff required due to apt issue
+  ansible.builtin.file:
+    path: /var/lib/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: '0755'
+
+
 - name: Configure Redis for Rspamd
   template:
     src: redis.conf.j2

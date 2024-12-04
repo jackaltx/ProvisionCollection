@@ -110,7 +110,7 @@ To completely remove all mail services, databases, and configurations:
 When running with `mailsvc_state: absent`:
 
 1. **Services Stopped and Disabled**
-   - nginx
+   - apache2
    - postfix
    - dovecot
    - php-fpm
@@ -122,7 +122,7 @@ When running with `mailsvc_state: absent`:
      - /etc/postfix
      - /etc/dovecot
      - /etc/postfixadmin
-     - /etc/nginx
+     - /etc/apache2
      - /etc/rspamd
      - /etc/roundcube
      - /etc/redis
@@ -153,7 +153,7 @@ After running the removal playbook, you may want to:
 
 2. Check for any remaining processes:
    ```bash
-   ps aux | grep -E 'postfix|dovecot|rspamd|nginx'
+   ps aux | grep -E 'postfix|dovecot|rspamd|apache2'
    ```
 
 3. Verify configuration cleanup:

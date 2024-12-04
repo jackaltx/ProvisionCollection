@@ -1,6 +1,15 @@
 ---
 
 # ........................................................................
+
+- name: Create /etc/postfix iff required due to apt issue
+  ansible.builtin.file:
+    path: /etc/postfix
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
 - name: Configure Postfix
   template:
     src: "{{ item.src }}"
@@ -18,6 +27,14 @@
   tags: [postfix_config]
 
 # ........................................................................
+- name: Create /etc/dovecot iff required due to apt issue
+  ansible.builtin.file:
+    path: /etc/dovecot/conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
 - name: Configure Dovecot
   template:
     src: "{{ item.src }}"
@@ -96,6 +113,14 @@
 
 
 # ........................................................................
+- name: Create /etc/rspamd iff required due to apt issue
+  ansible.builtin.file:
+    path: /etc/rspamd/local.d
+    state: directory
+    owner: _rspamd
+    group: _rspamd
+    mode: '0755'
+
 - name: Configure Rspamd
   template:
     src: "{{ item.src }}"
