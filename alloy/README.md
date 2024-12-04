@@ -6,7 +6,15 @@ Grafana Alloy is a vendor-neutral distribution of the OpenTelemetry (OTel) Colle
 Requirements
 ------------
 
-none
+```
+alloy_state: 'present'
+alloy_loki_endpoint: "127.0.0.1"
+alloy_custom_args: "--disable-reporting --server.http.listen-addr=0.0.0.0:12345"
+alloy_config: "/etc/alloy/config.alloy"
+
+alloy_delete_config: false
+alloy_delete_data: false
+```
 
 Role Variables
 --------------
@@ -16,7 +24,7 @@ A description of the settable variables for this role should go here, including 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+none
 
 Example Playbook
 ----------------
