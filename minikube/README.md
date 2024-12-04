@@ -1,62 +1,199 @@
-Role Name
-=========
+# Minikube Ansible Role
 
-[Minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fbinary+download)  is local Kubernetes, focusing on making it easy to learn and develop for Kubernetes.
+This role manages the installation and configuration of Minikube, a tool that makes it easy to run Kubernetes locally. It focuses on providing a simple development and learning environment for Kubernetes.
 
-I like to have [kubectl](https://kubernetes.io/docs/reference/kubectl/) available.  You can use "minikube kubectl --" to get the same effect, but no.  However, I put a flag to make it your choice.
+## Overview
 
+The role handles:
+- Installation of Minikube binary
+- Optional kubectl installation
+- Rootless Podman driver configuration
+- Support scripts for initialization
 
-Requirements
-------------
+## System Requirements
 
-What you’ll need:
-
+### Hardware Requirements
 - 2 CPUs or more
 - 2GB of free memory
 - 20GB of free disk space
 - Internet connection
-- Container or virtual machine manager, such as: Docker, QEMU, Hyperkit, Hyper-V, KVM, Parallels, Podman, VirtualBox, or VMware FusionWorkstation
 
-Role Variables
---------------
+### Supported Container/VM Managers
+- Docker
+- QEMU
+- Hyperkit
+- Hyper-V
+- KVM
+- Parallels
+- Podman
+- VirtualBox
+- VMware Fusion/Workstation
 
-By default this role installs. There are the state variable is 'present' or 'absent'.  See the playbook for how to use.
+## Role Variables
 
-
+```yaml
+# Installation control
+minikube_state: 'present'        # Use 'absent' to remove Minikube
+minikube_install_kubectl: true   # Whether to install kubectl binary
 ```
-minikube_state: present
-minikube_install_kubectl: true
+
+## Features
+
+### Core Components
+- Minikube binary installation
+- Latest stable kubectl installation (optional)
+- Rootless configuration support
+- Containerd runtime integration
+
+### Startup Configuration
+Includes a startup script that configures:
+- Podman driver
+- Rootless operation
+- Containerd runtime
+
+## Dependencies
+
+This role has no dependencies on other Ansible roles.
+
+## Example Playbooks
+
+### Basic Installation
+
+```yaml
+- hosts: servers
+  roles:
+    - role: minikube
 ```
 
+### Installation without kubectl
 
-Dependencies
-------------
-
-none
-
-Example Playbook
-----------------
-
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
+```yaml
+- hosts: servers
+  vars:
+    minikube_install_kubectl: false
+  roles:
+    - role: minikube
 ```
-- name: MiniKube Removal
-  hosts: localhost
-  connection: local
 
+### Complete Removal
+
+```yaml
+- hosts: servers
   vars:
     minikube_state: absent
-
   roles:
-    - minikube
+    - role: minikube
 ```
 
-License
--------
+## File Structure
+
+```
+minikube/
+├── defaults/
+│   └── main.yml                # Default variables
+├── files/
+│   └── start-minikube.sh      # Startup configuration script
+├── tasks/
+│   └── main.yml              # Main tasks
+└── vars/
+    └── main.yml             # Role variables
+```
+
+## Installation Details
+
+### Minikube Installation
+- Downloads latest version from Google Storage
+- Installs to `/usr/local/bin/minikube`
+- Sets appropriate permissions
+- Includes startup configuration script
+
+### kubectl Installation (Optional)
+- Fetches latest stable version information
+- Downloads from official Kubernetes repository
+- Installs to `/usr/local/bin/kubectl`
+- Sets appropriate permissions
+
+## Configuration
+
+### Default Startup Configuration
+```bash
+# Rootless configuration
+minikube config set driver podman
+minikube config set rootless true
+
+# Container runtime configuration
+minikube start --driver=podman --container-runtime=containerd
+```
+
+## Security Considerations
+
+### Rootless Operation
+- Runs without root privileges
+- Uses Podman driver
+- Improved security isolation
+
+### Binary Verification
+- Downloads from official sources
+- Sets appropriate file permissions
+- Runs with minimal privileges
+
+## Operational Notes
+
+### Installation
+- Checks for existing installations
+- Downloads only if necessary
+- Configures for rootless operation
+
+### Removal
+- Removes Minikube binary
+- Removes support scripts
+- Clean uninstallation
+
+## Troubleshooting
+
+Common issues and solutions:
+1. Resource constraints
+   - Verify system meets minimum requirements
+   - Check available disk space
+   - Monitor memory usage
+2. Container runtime issues
+   - Verify Podman installation
+   - Check container runtime status
+   - Validate user permissions
+
+## License
 
 MIT
 
-Author Information
-------------------
+## Author Information
 
-Jack Lavender, et al.
+Created by Jack Lavender, et al.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## Usage Tips
+
+### Starting Minikube
+```bash
+# Use the provided startup script
+start-minikube
+
+# Or use manual configuration
+minikube start --driver=podman --container-runtime=containerd
+```
+
+### Working with kubectl
+- Use `kubectl` directly when installed via this role
+- Alternative: use `minikube kubectl --` if kubectl is not installed
+
+## Additional Resources
+
+- [Minikube Documentation](https://minikube.sigs.k8s.io/docs/)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [Podman Driver Documentation](https://minikube.sigs.k8s.io/docs/drivers/podman/)
