@@ -2,14 +2,28 @@
 
 # ........................................................................
 
+- name: Disable un-required Apache modules
+  command: "a2dismod {{ item }}"
+  with_items:
+    - mpm_prefork
+  notify: restart apache2
+  tags: [apache2_config]
+
 - name: Enable required Apache modules
   command: "a2enmod {{ item }}"
   with_items:
     - proxy_fcgi
     - setenvif
-    - php8.3-fpm
+    - mpm_event
     - headers
     - ssl
+  notify: restart apache2
+  tags: [apache2_config]
+
+- name: Enable required Apache modules
+  command: "a2enconf {{ item }}"
+  with_items:
+    - php8.3-fpm
   notify: restart apache2
   tags: [apache2_config]
 

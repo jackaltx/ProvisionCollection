@@ -22,7 +22,7 @@
     Header always set X-Content-Type-Options "nosniff"
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
     
-    DirectoryIndex index.html
+    DirectoryIndex index.html index.php
 
     # PostfixAdmin
     Alias /postfixadmin /usr/share/postfixadmin/public
@@ -39,6 +39,10 @@
         AllowOverride All
         Require all granted
     </Directory>
+
+    <FilesMatch ".+\.ph(ar|p|tml)$">
+        SetHandler "proxy:unix:/run/php/php8.3-fpm.sock|fcgi://localhost"
+    </FilesMatch>
 
     # Block sensitive files
     <FilesMatch "\.(env|log|git|yml|ini|conf)$">

@@ -17,10 +17,10 @@
   tags: [packages]
 
 # ......................................................................
-- name: Manage mail service packages for Debian
+- name: Install mail service packages
   apt:
     name: "{{ mailsvc_packages }}"
-    state: "{{ mailsvc_state }}"
-    update_cache: yes
-    autoremove: "{{ mailsvc_state == 'absent' }}"
-    purge: "{{ mailsvc_state == 'absent' }}"
+    state: present
+    update_cache: true
+  when: mailsvc_state == 'present'
+  tags: [packages]

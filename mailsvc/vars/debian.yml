@@ -10,10 +10,12 @@ mailsvc_packages:
   # Web interfaces
   - postfixadmin
   - roundcube
+  - roundcube-core
   - roundcube-mysql
   - apache2
   - apache2-utils
   - libapache2-mod-php
+  - libapache2-mod-php8.3
   # PHP and extensions
   - php8.3-fpm
   - php8.3-mysql

@@ -45,8 +45,11 @@ non_smtpd_milters = inet:localhost:11332
 # added claude during rev2 debug
 nis_domains =
 
-# Add by cluse in rev3 for imapd
+# Add by claude in rev3 for imapd
 smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
-smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
-smtp_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
-smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+
+# Added by claude rev3 
+virtual_mailbox_base = /var/vmail
+virtual_uid_maps = static:5000
+virtual_gid_maps = static:5000
+

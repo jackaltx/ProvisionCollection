@@ -153,6 +153,18 @@
       ignore_errors: yes
       tags: [services]
 
+    - name: Purge mail service packages
+      shell: apt remove --purge {{ mailsvc_packages | join(' ') }} -y
+      register: purge_result
+      changed_when: purge_result.rc == 0
+      tags: [services]
+      
+    - name: Autoremove remaining packages
+      apt:
+        autoremove: yes
+        purge: yes
+      tags: [services]
+
     - name: Remove configuration directories
       when: mailsvc_remove_config | bool
       file:

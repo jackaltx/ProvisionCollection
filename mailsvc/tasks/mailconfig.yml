@@ -44,7 +44,7 @@
     mode: '0644'
   loop:
     - { src: dovecot.conf.j2, dest: /etc/dovecot/dovecot.conf }
-    - { src: dovecot-sql.conf.j2, dest: /etc/dovecot/dovecot-sql.conf }
+    - { src: dovecot-sql.conf.j2, dest: /etc/dovecot/dovecot-sql.conf.ext }
   notify: restart dovecot
   tags: [dovecot_config]
 
