@@ -1,7 +1,7 @@
 ---
 # handlers file for influxdb
 
-- name: restart influxd
+- name: Restart influxd
   ansible.builtin.systemd_service:
     name: influxd
     state: restarted

@@ -1,5 +1,4 @@
 ---
-
 - name: "Prepare the apt keyring directory"
   become: true
   ansible.builtin.file:
@@ -22,7 +21,7 @@
     url: https://repos.influxdata.com/influxdata-archive.key
     keyring: /etc/apt/trusted.gpg.d/influxdata-archive.gpg
 
-- name: "setup influxdb apt repo"
+- name: "Setup influxdb apt repo"
   become: true
   ansible.builtin.copy:
     src: influxdata.list
@@ -35,4 +34,3 @@
     pkg:
       - "{{ package }}"
   register: pkg_install_result
-

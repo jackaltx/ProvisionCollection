@@ -1,15 +1,16 @@
-[http]
-  bind-address: "0.0.0.0:8086"
 
-  # turn on the certificates by uncommenting...sux  SMELL 
-  #tls-cert = "{{ influxdb_cert }}"
-  #tls-key = "{{ influxdb_key }}"
+http-bind-address = "0.0.0.0:8086"
+reporting-disabled = true
+
+# turn on the certificates by uncommenting...sux  SMELL 
+#tls-cert = "{{ influxdb_cert }}"
+#tls-key = "{{ influxdb_key }}"
 
 [storage]
   bolt-path = "{{ influxdb_data_path }}/influxd.bolt"
   engine-path = "{{ influxdb_data_path }}/engine"
   log-level= "{{ influxdb_level }}"
-  reporting-disabled = true
+
 
 #  tiered-storage-enabled = true
 #  cold-storage = "s3"

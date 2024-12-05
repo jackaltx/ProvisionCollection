@@ -1,165 +1,168 @@
 ---
 # tasks file for influxdb
 
-#=============================================================================================================
+# =============================================================================================================
 # Install block
 #
-- name:  Influxdb Present Block
+- name: Influxdb Present Block
   when: influxdb_state == 'present'
   block:
+    # ............................................................
+    # see if it is running...
 
-  #.......................................................................................
-  # see if it is running...
-
-  - name: Is influxd runnin?
-    no_log: "{{ mylab_nolog | default(true) }}"
-    ansible.builtin.include_tasks:
-      file: "../../shared/any/tasks/is-service-running.yml"
-    vars:
-      service_name: influxd.service
-
-  #......................................................................................
-  # ... only install it not running...
-
-  - name: Install package and configure iff not running or forced
-    when: service_running is false or influxdb_reload
-    block:
-
-    #################
-    # Install Package
-
-    - name: Package install
+    - name: Is influxd runnin?
+      no_log: "{{ mylab_nolog | default(true) }}"
       ansible.builtin.include_tasks:
-        file: "../../shared/influxdb/tasks/{{ ansible_distribution }}-install.yml"
+        file: "../../shared/any/tasks/is-service-running.yml"
       vars:
-        package: influxdb2
-      
-    - debug:
-        var: pkg_install_result
+        service_name: influxd.service
 
-    ##################
-    # Configure
+    # ......................................................................................
+    # ... only install it not running...
 
-    # - name: Check if configuration file exists
-    #   stat:
-    #     path: "{{ SEARCH_PATH }}/{{ SEARCH_FILE }}"
-    #   register: result
+    - name: Install package and configure iff not running or forced
+      when: service_running is false or influxdb_reload
+      block:
+        #################
+        # Install Package
 
+        - name: Package install
+          ansible.builtin.include_tasks:
+            file: "../../shared/influxdb/tasks/{{ ansible_distribution }}-install.yml"
+          vars:
+            package: influxdb2
 
-    #.....................................................
-    #  .... configure the node with NFS, default and configuration file
+        - name: Debug package install results
+          ansible.builtin.debug:
+            var: pkg_install_result
+            verbosity: 1
+
+        ##################
+        # Overide for now...may be a debian only issue
+
+        - name: Override broken systemd file
+          ansible.builtin.include_tasks: influxdb-setup-systemd.yml
+
+        ##################
+        # Configure
+
+        # - name: Check if configuration file exists
+        #   stat:
+        #     path: "{{ SEARCH_PATH }}/{{ SEARCH_FILE }}"
+        #   register: result
+
+        # .....................................................
+        #  .... configure the node with NFS, default and configuration file
+        #
+
+        - name: Configure Influxdb block
+          when: influxdb_configure
+          block:
+            # ............................................
+            # NOTE: this is a customization to put the data directory on NFS mount
+            # NOTE: there is no environment file for ifluxdb
+
+            - name: NFS for Influxdb
+              block:
+                - name: Create the nfs mount directory
+                  when: mount_nfs_share
+                  ansible.builtin.file:
+                    path: "{{ influxdb_data_path }}"
+
+                - name: Mount NFS data directory if required
+                  ansible.builtin.include_role:
+                    name: nfs-client
+
+            - name: "Create /etc/influxd/"
+              ansible.builtin.file:
+                path: /etc/influxdb
+                state: directory
+                owner: root
+                group: root
+                mode: "0755"
+              become: true
+
+            - name: "Template config for storage in /etc/influxd/"
+              ansible.builtin.template:
+                src: config.toml.j2
+                dest: /etc/influxdb/config.toml
+                owner: root
+                group: root
+                mode: "0644"
+              become: true
+
+            - name: Restart influxd
+              ansible.builtin.systemd_service:
+                name: influxd
+                state: restarted
+              become: true
+
+    # TODO catch failures
+
+    # ......................................................................................
+    # This captures the failure just in case it already exists!!!!
     #
 
-    - name: Configure Influxdb block
-      when: influxdb_configure
+    - name: Initialize the new influxdb instance (note, must be running)
       block:
+        - name: Ensure influxd is started
+          ansible.builtin.systemd_service:
+            name: influxd
+            state: started
+          become: true
 
-        #............................................
-        # NOTE: this is a customization to put the data directory on NFS mount
-        # NOTE: there is no environment file for ifluxdb
+        - name: Wait for service to start (note, must be running)
+          ansible.builtin.wait_for:
+            port: 8086 # Replace with your service port
+            state: started
+            timeout: 300 # 5 minutes timeout
+            delay: 10 # Initial delay before first check
 
-      - name: NFS for Influxdb
-        block:
+        - name: Initialize the influx database (note, must be running)
+          ansible.builtin.include_tasks: initializedb.yml
 
-        - name: create the nfs mount directory
-          when: mount_nfs_share
-          ansible.builtin.file:
-            path: "{{ influxdb_data_path }}"
-
-        - name: mount NFS data directory if required
-          ansible.builtin.include_role:
-            name: nfs-client
-
-
-      - name: "Create /etc/influxd/"
-        ansible.builtin.file:
-          path: /etc/influxdb
-          state: directory
-        become: true
-
-      - name: "Template config for storage in /etc/influxd/"
-        ansible.builtin.template:
-          src: config.toml.j2
-          dest: /etc/influxdb/config.toml
-        become: true
-
-      - name: restart influxd
-        ansible.builtin.systemd_service:
-          name: influxd
-          state: restarted
-        become: true
-
-  # TODO catch failures
-  
-
-
-  #......................................................................................
-  # This captures the failure just in case it already exists!!!! 
-  #
-
-  - name: Initialize the new influxdb instance (note, must be running)
-    block:
-
-      - name: ensure influxd is started
-        ansible.builtin.systemd_service:
-          name: influxd
-          state: started
-        become: true
-
-      - name: Wait for service to start (note, must be running)
-        wait_for:
-          port: 8086  # Replace with your service port
-          state: started
-          timeout: 300  # 5 minutes timeout
-          delay: 10    # Initial delay before first check
-
-      - name: initialize the influx database (note, must be running)
-        include_tasks: initializedb.yml
- 
- 
-#=============================================================================================================
+###################################################################################
+#
 #  Remove Block
 #
-- name: Remove the InfluxDB v2 service, configuration(if), data(if) 
+- name: Remove the InfluxDB v2 service, configuration(if), data(if)
   when: influxdb_state == 'absent'
   block:
+    - name: Package remove
+      ansible.builtin.include_tasks:
+        file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
+      vars:
+        package: influxdb2
+        service_name: influxd.service
 
-  - name: Package remove
-    ansible.builtin.include_tasks:
-      file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
-    vars:
-      package: influxdb2
-      service_name: influxd.service
+    # .................................................................
+    - name: Remove configuration files
+      when: influxdb_delete_config
+      block:
+        - name: "Remove InfluxDB configuration files"
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          become: true
+          loop:
+            - /etc/default/influxdb2
+            - /etc/influxdb
+            - /root/.influxdbv2
+          register: file_cleanup
+          ignore_errors: "{{ ansible_check_mode }}"
+          failed_when:
+            - file_cleanup.failed is defined
+            - file_cleanup.failed and not ansible_check_mode
 
-  #.........................
-  - name: remove configuration files
-    when: influxdb_delete_config
-    block:
-
-    - name: "Remove InfluxDB configuration files"
+    # .........................
+    - name: "Remove the data files in {{ influxdb_data_path }}"
       ansible.builtin.file:
-        path: "{{ item }}"
+        path: "{{ influxdb_data_path }}/{{ item }}"
         state: absent
       become: true
+      when: influxdb_delete_data
       loop:
-        - /etc/default/influxdb2
-        - /etc/influxdb
-        - /root/.influxdbv2
-      register: file_cleanup
-      ignore_errors: "{{ ansible_check_mode }}"
-      failed_when: 
-        - file_cleanup.failed is defined
-        - file_cleanup.failed and not ansible_check_mode
-
-  #.........................
-  - name: "Remove the data files in {{ influxdb_data_path }}"
-    ansible.builtin.file :
-      path: "{{ influxdb_data_path }}/{{ item }}"
-      state: absent
-    become: true
-    when: influxdb_delete_data
-    loop:
-      - .cache
-      - engine
-      - influxd.bolt
-      - influxd.sqlite
+        - .cache
+        - engine
+        - influxd.bolt
+        - influxd.sqlite

@@ -5,10 +5,10 @@
 telegraf_state: present
 
 # a list of metrics to pick from
-influxdb_apache: false  
-influxdb_mariadb: false  
-influxdb_memcache: false  
-influxdb_redis: false  
+influxdb_apache: false
+influxdb_mariadb: false
+influxdb_memcache: false
+influxdb_redis: false
 influxdb_oss_metrics: false
 
 # used for absent

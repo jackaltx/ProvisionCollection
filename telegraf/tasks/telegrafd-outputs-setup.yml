@@ -1,20 +1,14 @@
 ---
-
-# - debug:
-#     msg: "Key={{ item.key }} value={{ item.value.output }}"
-#   loop: "{{ lookup('dict', telgraf2influxdb_configs)  }}"
-#   when: item.value.output
-
-
 - name: Create telegraf ouput files
   no_log: "{{ mylab_nolog | default(true) }}"
   ansible.builtin.template:
     src: output.j2
     dest: "/etc/telegraf/telegraf.d/output-{{ item.key }}.conf"
-  loop: "{{ lookup('dict', telgraf2influxdb_configs)  }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ lookup('dict', telgraf2influxdb_configs) }}"
   when: item.key in telegraf_outputs
   become: true
   notify:
-    - restart telegraf
-
-
+    - Restart telegraf
