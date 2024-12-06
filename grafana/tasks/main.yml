@@ -1,7 +1,7 @@
 ---
 # tasks file for grafana
 
-  #.......................................  
+  # ......................................  
 - name: Install Grafana-Server
   when: grafana_state == 'present'
   block:
@@ -51,7 +51,7 @@
   #   become: true
 
 
-  #.......................................  
+  # ......................................  
 - name: Remove Grafana-Server and configuration files.
   block:
   when: grafana_state == 'absent'

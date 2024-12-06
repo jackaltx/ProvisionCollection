@@ -1,9 +1,7 @@
 ---
-
 - name: Include OS-specific variables
   include_vars: "{{ ansible_distribution|lower }}.yml"
   tags: [always]
-
 
 # ==================================================================
 # Only required during installation
@@ -11,22 +9,20 @@
 - name: Verify SSL certificates exist
   when: mailsvc_state == "present"
   block:
+    - name: Get certificate file stats
+      stat:
+        path: "{{ item }}"
+      register: ssl_file_check
+      loop:
+        - "{{ ssl_cert_file }}"
+        - "{{ ssl_key_file }}"
 
-  - name: Get certificate file stats
-    stat:
-      path: "{{ item }}"
-    register: ssl_file_check
-    loop:
-      - "{{ ssl_cert_file }}"
-      - "{{ ssl_key_file }}"
-
-  - name: Check certificate status
-    fail:
-      msg: "Required SSL certificate {{ item.item }} is missing"
-    when: not item.stat.exists
-    loop: "{{ ssl_file_check.results }}"
-    tags: [ssl_check]
-
+    - name: Check certificate status
+      fail:
+        msg: "Required SSL certificate {{ item.item }} is missing"
+      when: not item.stat.exists
+      loop: "{{ ssl_file_check.results }}"
+      tags: [ssl_check]
 
 # ==================================================================
 #  Only required during installation
@@ -57,7 +53,7 @@
           Roundcube Password: {{ roundcube_password }}
           MySQL Root Password: {{ mailsvc_mysql_root_password }}
           Roundcube DES Key: {{ roundcube_des_key }}
-        mode: '0600'
+        mode: "0600"
       tags: [passwords]
 
     - name: Fetch password file locally
@@ -67,14 +63,12 @@
         flat: yes
       tags: [passwords]
 
-
 # ==================================================================
 #  Installation
 
 - name: Setup mail services
   when: mailsvc_state == "present"
   block:
-
     - name: Include OS-specific package tasks
       include_tasks: "packages_{{ ansible_distribution|lower }}.yml"
       tags: [packages]
@@ -91,12 +85,12 @@
       include_tasks: mailconfig.yml
       tags: [mailconfig]
 
-    #..........................................................
+    # .........................................................
     - name: Include web configuration tasks
       include_tasks: webconfig.yml
       tags: [webconfig]
 
-    #...........................................................
+    # ..........................................................
     - name: Ensure services are started and enabled
       service:
         name: "{{ item }}"
@@ -111,7 +105,7 @@
         - rspamd
       tags: [services]
 
-    #............................................................
+    # ...........................................................
     - name: Configure log access for Alloy
       include_tasks: log-access.yml
       tags: [log_access]
@@ -158,7 +152,7 @@
       register: purge_result
       changed_when: purge_result.rc == 0
       tags: [services]
-      
+
     - name: Autoremove remaining packages
       apt:
         autoremove: yes

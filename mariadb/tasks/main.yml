@@ -11,7 +11,7 @@
   block:
     - name: Include OS-specific installation tasks
       include_tasks: "packages_{{ ansible_distribution|lower }}.yml"
- 
+
     - name: Start and enable MariaDB service
       service:
         name: mariadb
@@ -24,7 +24,7 @@
         dest: "{{ mariadb_conf_path }}"
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
       notify: restart mariadb
       register: cmd_result
 
@@ -34,31 +34,29 @@
         state: started
         enabled: yes
 
-      #..............................................................
+      # .............................................................
     - name: test if root password need setting
       block:
+        - name: Set MariaDB root password
+          community.mysql.mysql_user:
+            login_user: root
+            login_password: ""
+            login_host: localhost
+            login_unix_socket: /run/mysqld/mysqld.sock
+            check_implicit_admin: true
+            name: root
+            password: "{{ mysql_password }}"
+            host_all: yes
+            state: present
+          ignore_errors: true
 
-      - name: Set MariaDB root password 
-        community.mysql.mysql_user:
-          login_user: root
-          login_password: ''
-          login_host: localhost
-          login_unix_socket: /run/mysqld/mysqld.sock
-          check_implicit_admin: true
-          name: root
-          password: "{{ mysql_password }}"
-          host_all: yes
-          state: present
-        ignore_errors: true
+        - name: Save root credentials on remote
+          ansible.builtin.copy:
+            content: "{{ mysql_password }}"
+            dest: "/root/.mysql_root"
+            mode: "0600"
+          no_log: true
 
-
-      - name: Save root credentials on remote
-        ansible.builtin.copy:
-          content: "{{ mysql_password }}"
-          dest: "/root/.mysql_root"
-          mode: '0600'
-        no_log: true
- 
       when: mysql_password != ""
 
       rescue:
@@ -76,11 +74,9 @@
         - name: Continue with rest of playbook
           debug:
             msg: "MySQL password is valid, continuing with playbook"
-          when: mysql_check.rc == 0 
+          when: mysql_check.rc == 0
 
-
-
-    #.................................................
+    # ................................................
     - name: Configure MariaDB security
       include_tasks: secure.yml
       when: mariadb_security

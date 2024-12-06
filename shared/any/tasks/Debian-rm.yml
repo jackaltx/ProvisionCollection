@@ -88,23 +88,23 @@
         success_msg: "Package {{ package }} was successfully removed"
       when: verify_removal | default(true)
 
-    # Check for leftover files
-    - name: Check for leftover files
-      ansible.builtin.find:
-        paths:
-          - "/etc/{{ package }}"
-          - "/var/lib/{{ package }}"
-          - "/var/log/{{ package }}"
-        file_type: any
-      register: leftover_files
-      when: verify_removal | default(true)
+    # # Check for leftover files
+    # - name: Check for leftover files
+    #   ansible.builtin.find:
+    #     paths:
+    #       - "/etc/{{ package }}"
+    #       - "/var/lib/{{ package }}"
+    #       - "/var/log/{{ package }}"
+    #     file_type: any
+    #   register: leftover_files
+    #   when: verify_removal | default(true)
 
-    - name: Report leftover files
-      ansible.builtin.debug:
-        msg: "Warning: Found leftover files: {{ leftover_files.files | map(attribute='path') | list }}"
-      when:
-        - verify_removal | default(true)
-        - leftover_files.matched > 0
+    # - name: Report leftover files
+    #   ansible.builtin.debug:
+    #     msg: "Warning: Found leftover files: {{ leftover_files.files | map(attribute='path') | list }}"
+    #   when:
+    #     - verify_removal | default(true)
+    #     - leftover_files.matched > 0
 
   rescue:
     - name: Handle service stop failure

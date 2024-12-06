@@ -136,6 +136,7 @@
 - name: Remove the InfluxDB v2 service, configuration(if), data(if)
   when: influxdb_state == 'absent'
   block:
+    # .................................................................
     - name: Package remove
       ansible.builtin.include_tasks:
         file: "../../shared/any/tasks/{{ ansible_distribution }}-rm.yml"
@@ -162,7 +163,7 @@
             - file_cleanup.failed is defined
             - file_cleanup.failed and not ansible_check_mode
 
-    # .........................
+    # .................................................................
     - name: "Remove the data files in {{ influxdb_data_path }}"
       ansible.builtin.file:
         path: "{{ influxdb_data_path }}/{{ item }}"

@@ -1,6 +1,6 @@
 galaxy_info:
   author: jackaltx
-  description: Install/remove influxdb
+  description: Install/remove Loki
   company: lavnet.net
   license: MIT
   min_ansible_version: "2.9"
