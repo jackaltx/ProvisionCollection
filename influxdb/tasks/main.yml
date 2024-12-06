@@ -10,12 +10,12 @@
     # ............................................................
     # see if it is running...
 
-    - name: Is influxd runnin?
+    - name: Is influxdb runnin?
       no_log: "{{ mylab_nolog | default(true) }}"
       ansible.builtin.include_tasks:
         file: "../../shared/any/tasks/is-service-running.yml"
       vars:
-        service_name: influxd.service
+        service_name: influxdb.service
 
     # ......................................................................................
     # ... only install it not running...
@@ -23,9 +23,6 @@
     - name: Install package and configure iff not running or forced
       when: service_running is false or influxdb_reload
       block:
-        #################
-        # Install Package
-
         - name: Package install
           ansible.builtin.include_tasks:
             file: "../../shared/influxdb/tasks/{{ ansible_distribution }}-install.yml"
@@ -43,6 +40,38 @@
         - name: Override broken systemd file
           ansible.builtin.include_tasks: influxdb-setup-systemd.yml
 
+        #########################################################
+        # nfs mount for data if requested
+        # must stop service as it keeps runtine stuff in there.
+
+        - name: NFS for Influxdb
+          when: influxdb_nfs | default(false)
+          block:
+            - name: Stop service if running
+              ansible.builtin.systemd_service:
+                name: influxdb
+                state: stopped
+              register: service_stop_result
+              become: true
+
+            - name: Wait for service to stop
+              ansible.builtin.wait_for:
+                timeout: 10
+              when: service_stop_result.changed
+
+            - name: Create the nfs mount directory
+              when: mount_nfs_share
+              ansible.builtin.file:
+                path: "{{ influxdb_data_path }}"
+                state: directory
+                owner: influxdb
+                group: influxdb
+                mode: "0750"
+
+            - name: Mount NFS data directory if required
+              ansible.builtin.include_role:
+                name: nfs-client
+
         ##################
         # Configure
 
@@ -58,22 +87,7 @@
         - name: Configure Influxdb block
           when: influxdb_configure
           block:
-            # ............................................
-            # NOTE: this is a customization to put the data directory on NFS mount
-            # NOTE: there is no environment file for ifluxdb
-
-            - name: NFS for Influxdb
-              block:
-                - name: Create the nfs mount directory
-                  when: mount_nfs_share
-                  ansible.builtin.file:
-                    path: "{{ influxdb_data_path }}"
-
-                - name: Mount NFS data directory if required
-                  ansible.builtin.include_role:
-                    name: nfs-client
-
-            - name: "Create /etc/influxd/"
+            - name: "Create /etc/influxd/ directory"
               ansible.builtin.file:
                 path: /etc/influxdb
                 state: directory
@@ -90,13 +104,7 @@
                 group: root
                 mode: "0644"
               become: true
-
-            - name: Restart influxd
-              ansible.builtin.systemd_service:
-                name: influxd
-                state: restarted
-              become: true
-
+              notify: Restart influxdb
     # TODO catch failures
 
     # ......................................................................................
@@ -107,7 +115,7 @@
       block:
         - name: Ensure influxd is started
           ansible.builtin.systemd_service:
-            name: influxd
+            name: influxdb
             state: started
           become: true
 

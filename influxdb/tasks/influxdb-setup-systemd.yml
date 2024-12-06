@@ -16,8 +16,8 @@
           [Service]
           StateDirectory=
           StateDirectoryMode=
-          Environment=INFLUXD_BOLT_PATH=/opt/influxdb/influxd.bolt
-          Environment=INFLUXD_ENGINE_PATH=/opt/influxdb/engine
+          Environment=INFLUXD_BOLT_PATH={{ influxdb_data_path }}/influxd.bolt
+          Environment=INFLUXD_ENGINE_PATH={{ influxdb_data_path }}/engine
           Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/influxdb/bus
         mode: "0644"
 
@@ -34,9 +34,3 @@
       become: true
       ansible.builtin.systemd:
         daemon_reload: true
-
-    # - name: Restart InfluxDB service
-    #   become: true
-    #   ansible.builtin.systemd:
-    #     name: influxdb
-    #     state: restarted

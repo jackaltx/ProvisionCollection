@@ -24,5 +24,8 @@ telegraf_ping_loc:
   - 8.8.8.8
   - www.google.com
 
+# by default we are in in testing mode  TODAY!!!
+telegraf_testing: true
+
 # these are for influxd outputs
 telgraf2influxdb_configs: {}

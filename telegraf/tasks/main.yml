@@ -32,7 +32,7 @@
       ansible.builtin.include_tasks:
         file: telegrafd-outputs-setup.yml
 
-    - name: Edge case, when the URL is localhost and it empty, then set it up
+    - name: Edge case, when the influxd url is localhost, then set it up
       ansible.builtin.include_tasks:
         file: influxdb-localhost-operators-token.yml
 

@@ -1,7 +1,6 @@
 ---
 # defaults file for influxdb
 
-influxdb_data_path: ""
 influxdb_level: info
 influxdb_state: "present"
 
@@ -24,3 +23,9 @@ influxdb_force_configure: false
 
 # Set of buckets to create
 influxdb_buckets: [telegraf, oss_metrics, metrics]
+
+# You can override this path here.
+influxdb_data_path: /var/lib/influxdb
+
+# nfs mounts have to happen before package install
+influxdb_nfs: false
