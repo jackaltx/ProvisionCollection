@@ -44,5 +44,12 @@
         name:
           - gpg
           - ca-certificates
+          - qemu-guest-agent
         update_cache: yes
         state: present
+
+    - name: Ensure qemu-guest-agent is running
+      systemd:
+        name: qemu-guest-agent
+        state: started
+        enabled: true

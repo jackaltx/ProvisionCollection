@@ -146,17 +146,24 @@
             influxdb_auth_list: "{{ final_auth_list.stdout | from_json | json_query('[].{id: id, description: description, token: token}') }}"
 
         - name: Save tokens to local file
+          when: not ( influxdb_test | default(false) )
+          become: false
           ansible.builtin.copy:
             content: "{{ influxdb_auth_list | to_nice_yaml }}"
-            dest: "{{ lookup('env', 'PWD') }}/data/influx-tokens-{{ ansible_hostname }}.yml"
+            dest: '{{ project_root }}/data/influx-tokens-{{ ansible_hostname }}-{{ lookup(''pipe'', ''date "+%Y%m%d-%H%M%S"'') }}.yml'
             owner: "{{ lookup('env', 'USER') }}"
             mode: "0600"
           delegate_to: localhost
 
         - name: Save web UI credentials to local file
+          when: not ( influxdb_test | default(false) )
+          become: false
           ansible.builtin.copy:
-            content: "\nUsername: {{ influxdb_username }}\npassword: {{ influxdb_password }}\n"
-            dest: "{{ lookup('env', 'PWD') }}/data/influx-webui-access-{{ ansible_hostname }}.txt"
+            content: |
+              # Created: {{ lookup('pipe', 'date "+%Y-%m-%d %H:%M:%S"') }}
+              Username: {{ influxdb_username }}
+              password: {{ influxdb_password }}
+            dest: '{{ project_root }}/data/influx-webui-access-{{ ansible_hostname }}-{{ lookup(''pipe'', ''date "+%Y%m%d-%H%M%S"'') }}.txt'
             owner: "{{ lookup('env', 'USER') }}"
             mode: "0600"
           delegate_to: localhost
@@ -195,17 +202,21 @@
         influxdb_operators_token: "{{ influxdb_auth_list | json_query('[?description==`system-operator`].token') | first }}"
 
     - name: Create a token file in the local data directory
+      when: not ( influxdb_test | default(false) )
+      become: false
       ansible.builtin.copy:
         content: "{{ influxdb_auth_list | to_nice_yaml }}"
-        dest: "{{ lookup('env', 'PWD') }}/data/influx-tokens-{{ ansible_hostname }}.yml"
+        dest: "{{ project_root }}/data/influx-tokens-{{ ansible_hostname }}.yml"
         owner: "{{ lookup('env', 'USER') }}"
         mode: "0600"
       delegate_to: localhost
 
     - name: Create influx password file in the local data directory
+      when: not ( influxdb_test | default(false) )
+      become: false
       ansible.builtin.copy:
         content: "\nUsername: {{ influxdb_username }}\n password: {{ influxdb_password }} \n"
-        dest: "{{ lookup('env', 'PWD') }}/data/influx-webui-access-{{ ansible_hostname }}.txt"
+        dest: "{{ project_root }}/data/influx-webui-access-{{ ansible_hostname }}.txt"
         owner: "{{ lookup('env', 'USER') }}"
         mode: "0600"
       delegate_to: localhost

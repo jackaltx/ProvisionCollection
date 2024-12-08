@@ -14,9 +14,10 @@ platforms:
 provisioner:
   name: ansible
   log: true
-  #env:
-  #  ANSIBLE_ROLES_PATH: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | dirname }}"
   inventory:
+    group_vars:
+      all:
+        proxmox_vmid: 9100
     host_vars:
       clone-test:
         ansible_host: "192.168.101.90"
