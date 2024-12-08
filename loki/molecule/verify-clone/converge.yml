@@ -1,0 +1,10 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  tasks:
+    - name: Include loki role
+      ansible.builtin.include_role:
+        name: "../../../../ProvisionCollection/loki"
+      vars:
+        loki_test: true # Use local storage instead of S3

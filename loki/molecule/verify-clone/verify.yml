@@ -1,0 +1,45 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Check if Loki service is running
+      ansible.builtin.service_facts:
+
+    - name: Assert Loki is running
+      ansible.builtin.assert:
+        that:
+          - "'loki.service' in ansible_facts.services"
+          - "ansible_facts.services['loki.service'].state == 'running'"
+          - "ansible_facts.services['loki.service'].status == 'enabled'"
+
+    - name: Verify Loki is listening on port 3100
+      ansible.builtin.wait_for:
+        port: 3100
+        timeout: 10
+
+    - name: Check Loki configuration
+      ansible.builtin.stat:
+        path: /etc/loki/config.yml
+      register: config_stat
+
+    - name: Assert config exists and has correct permissions
+      ansible.builtin.assert:
+        that:
+          - "config_stat.stat.exists"
+          - "config_stat.stat.mode == '0644'"
+
+    - name: Check Loki storage directories exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: storage_stat
+      loop:
+        - /var/lib/loki/chunks
+        - /var/lib/loki/rules
+
+    - name: Assert storage directories exist
+      ansible.builtin.assert:
+        that:
+          - "storage_stat.results[0].stat.exists"
+          - "storage_stat.results[1].stat.exists"
+      when: loki_test | bool

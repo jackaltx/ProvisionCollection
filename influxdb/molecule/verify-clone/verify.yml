@@ -1,0 +1,126 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Check if InfluxDB service is running
+      ansible.builtin.service_facts:
+
+    - name: Assert InfluxDB is running and enabled
+      ansible.builtin.assert:
+        that:
+          - "'influxdb.service' in ansible_facts.services"
+          - "ansible_facts.services['influxdb.service'].state == 'running'"
+          - "ansible_facts.services['influxdb.service'].status == 'enabled'"
+
+    - name: Verify InfluxDB is listening on port 8086
+      ansible.builtin.wait_for:
+        port: 8086
+        timeout: 10
+        state: started
+
+    - name: Get InfluxDB version
+      ansible.builtin.command: influx version
+      register: influx_version
+      changed_when: false
+
+    - name: Check InfluxDB configuration
+      ansible.builtin.stat:
+        path: /etc/influxdb/config.toml
+      register: config_stat
+
+    - name: Assert config exists and has correct permissions
+      ansible.builtin.assert:
+        that:
+          - "config_stat.stat.exists"
+          - "config_stat.stat.mode == '0644'"
+
+    - name: Check InfluxDB storage directories
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: storage_stat
+      loop:
+        - "{{ influxdb_data_path }}/engine"
+        - "{{ influxdb_data_path }}/influxd.bolt"
+
+    - name: Assert storage directories exist with correct permissions
+      ansible.builtin.assert:
+        that:
+          - "storage_stat.results[0].stat.exists"
+          - "storage_stat.results[1].stat.exists"
+
+    - name: Verify InfluxDB CLI functionality
+      block:
+        - name: Check if InfluxDB is configured
+          ansible.builtin.command: influx config ls --json
+          register: influx_config
+          changed_when: false
+          failed_when: false
+
+        - name: Verify configuration status
+          ansible.builtin.assert:
+            that: influx_config.stdout != '{}'
+            fail_msg: "InfluxDB is not configured properly"
+
+        - name: List buckets to verify CLI access
+          ansible.builtin.command: influx bucket list --json
+          register: bucket_list
+          changed_when: false
+
+        - name: Verify default buckets exist
+          ansible.builtin.assert:
+            that:
+              - "'telegraf' in (bucket_list.stdout | from_json | json_query('[].name'))"
+              - "'metrics' in (bucket_list.stdout | from_json | json_query('[].name'))"
+              - "'oss_metrics' in (bucket_list.stdout | from_json | json_query('[].name'))"
+            fail_msg: "Required buckets are not present"
+
+        - name: Create local data directory for test results
+          ansible.builtin.file:
+            path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/verify_output"
+            state: directory
+          delegate_to: localhost
+
+        - name: Save verification results
+          ansible.builtin.copy:
+            content: |
+              === InfluxDB Molecule Test Results ===
+              Timestamp: {{ ansible_date_time.iso8601 }}
+
+              Version Information:
+              {{ influx_version.stdout }}
+
+              Configuration Status:
+              {{ influx_config.stdout | from_json | to_nice_yaml }}
+
+              Buckets:
+              {{ bucket_list.stdout | from_json | to_nice_yaml }}
+
+              Service Status:
+              Running: {{ ansible_facts.services['influxdb.service'].state == 'running' }}
+              Enabled: {{ ansible_facts.services['influxdb.service'].status == 'enabled' }}
+
+              Storage Paths:
+              Engine: {{ influxdb_data_path }}/engine ({{ storage_stat.results[0].stat.exists }})
+              Bolt DB: {{ influxdb_data_path }}/influxd.bolt ({{ storage_stat.results[1].stat.exists }})
+            dest: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/verify_output/influxdb_verify_results.yml"
+            mode: "0644"
+          delegate_to: localhost
+
+      rescue:
+        - name: Save error information on CLI verification failure
+          ansible.builtin.copy:
+            content: |
+              === InfluxDB Verification Errors ===
+              Timestamp: {{ ansible_date_time.iso8601 }}
+
+              Errors:
+              Config Check: {{ influx_config.stderr if influx_config.stderr is defined else 'N/A' }}
+              Bucket List: {{ bucket_list.stderr if bucket_list.stderr is defined else 'N/A' }}
+            dest: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/verify_output/influxdb_verify_errors.yml"
+            mode: "0644"
+          delegate_to: localhost
+
+        - name: Fail with verification error message
+          ansible.builtin.fail:
+            msg: "InfluxDB verification failed. Check errors in molecule ephemeral directory."

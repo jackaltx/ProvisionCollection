@@ -18,6 +18,7 @@ server:
 common:
   instance_addr: 127.0.0.1
   path_prefix: /tmp/loki
+{% if not loki_test %}
   storage:
     s3:
       bucketnames: "{{ loki_s3_bucket }}"
@@ -26,7 +27,12 @@ common:
       secret_access_key: "{{ loki_access_key }}"
       insecure: true
       s3forcepathstyle: true
-  replication_factor: 1
+{% else %}
+  storage:
+    filesystem:
+      chunks_directory: /var/lib/loki/chunks
+      rules_directory: /var/lib/loki/rules
+{% endif %}  replication_factor: 1
   ring:
     kvstore:
       store: inmemory
@@ -50,7 +56,12 @@ schema_config:
   configs:
   - from: 2024-05-30
     store: tsdb
+{% if not loki_test %}
     object_store: s3
+{% else %}
+    object_store: filesystem
+{% endif %}
+
     schema: v13
     index:
       prefix: index_

@@ -26,15 +26,28 @@
     # Configure
 
     - name: Template config to  /etc/loki/config.yml
+      become: true
       ansible.builtin.template:
         src: config.yml.j2
         dest: /etc/loki/config.yml
         owner: root
         group: root
         mode: "0644"
-      become: true
       notify:
         - Restart loki
+
+    - name: Create Loki storage directories (test mode)
+      when: loki_test | bool
+      become: true
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0770"
+        owner: loki
+        group: root
+      loop:
+        - /var/lib/loki/chunks
+        - /var/lib/loki/rules
 
 ###################################################################################
 #
